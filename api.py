@@ -30,7 +30,7 @@ INSTRUMENTS = {
         'weather':weather.Weather
         }
 
-@app.route('/tpx_status', methods=('GET','POST'))
+@app.route('/tpx_status/', methods=('GET','POST'))
 def tpx_status():
     args = request.args
     instr = args['instr']

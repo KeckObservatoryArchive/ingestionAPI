@@ -13,7 +13,8 @@ def tpx_gui():
     cur_date = datetime.datetime.today()
     #get static dates for later use
     static_date = datetime.datetime.now()
-    static_year = static_date.year
+    #static_year = static_date.year
+    static_year = '2016'
     static_month = static_date.month
     static_day = static_date.day
     #grab selected parameters from drop-down menu

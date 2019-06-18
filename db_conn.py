@@ -1,5 +1,5 @@
 import pymysql
-import pymysql.cursors
+#import pymysql.cursors
 import confparse
 
 class db_conn(object):
@@ -24,17 +24,18 @@ class db_conn(object):
             # Primary connection
 
             self.dbConn = pymysql.connect(self.server, self.user, self.pwd, self.db, cursorclass=pymysql.cursors.DictCursor)
-        except:
+        except Exception as e:
+            print(e)
             self.dbConn = 0
 
             # Backup connection
 
-            if self.backupServer:
-                try:
-                    self.dbConn = pymysql.connect(self.backupServer, self.user, self.pwd, self.db, cursorclass=pymysql.cursors.DictCursor)
-                    self.readOnly = 1
-                except:
-                    self.dbConn = 0
+#if self.backupServer:
+#                try:
+#                    self.dbConn = pymysql.connect(self.backupServer, self.user, self.pwd, self.db, cursorclass=pymysql.cursors.DictCursor)
+#                    self.readOnly = 1
+#                except:
+#                    self.dbConn = 0
 
     def db_close(self):
         '''
@@ -46,10 +47,14 @@ class db_conn(object):
 
     def do_query(self, query, output):
         self.db_connect()
+        print("inside the server")
 
         # Save as a list of dictionaries
 
         query = ''.join(query)
+        print(query)
+        result = None
+        print(type(self.dbConn))
         with self.dbConn.cursor() as cursor:
             num = cursor.execute(query)
             result = cursor.fetchall()
