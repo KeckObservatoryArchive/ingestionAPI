@@ -3,13 +3,15 @@ import pymysql.cursors
 import confparse
 
 class db_conn(object):
-    def __init__(self, database=''):
+    def __init__(self, database='', test=True):
         config = confparse.ConfigParser('config.live.ini')
         self.db = config.get_db()
         self.server = config.get_host()
         self.port = config.get_port()
         self.user = config.get_user()
         self.pwd = config.get_pass()
+        if test == True:
+            self.db = 'test'
         self.readOnly = 0
         del config
 
@@ -51,44 +53,5 @@ class db_conn(object):
         with self.dbConn.cursor() as cursor:
             num = cursor.execute(query)
             result = cursor.fetchall()
-            if num == 0:
-                value = {}
-                if output == 'txt':
-                    value = ' '
-            elif num == 1:
-                value = {}
-                for row in result:
-                    for f in row.keys():
-                        value[f] = str(row[f])
-
-                # Convert to text output
-
-                if output == 'txt':
-                    v = ''
-                    for key, val in row.items():
-                        v = v + ' ' + str(val)
-                    value = v
-            else:
-                value = []
-                count = 0
-                for row in result:
-                    value.insert(count, {})
-                    for f in row.keys():
-                        value[count][f] = str(row[f])
-                    count += 1
-
-                # Convert to text output
-
-                if output == 'txt':
-                    v = ''
-                    count = 0
-                    for row in value:
-                        if count > 0:
-                            v = v + '<br>'
-                        for key, val in row.items():
-                            v = v + ' ' + str(val)
-                        count += 1
-                    value = v
-
         self.db_close()
-        return value
+        return result
