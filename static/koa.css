@@ -1,5 +1,5 @@
 /*set background image to Keck, white verdana font, center alignment*/
-body            {font-family: verdana; background-size: cover; background-image: url(https://keolamagazine.com/wp-content/uploads/2018/09/keck-1.jpg); color: white; text-align:center;}
+body            {font-family: verdana; background-attachment: fixed; background-size: cover; background-image: url(https://keolamagazine.com/wp-content/uploads/2018/09/keck-1.jpg); color: white; text-align:center;}
 /*make header white*/
 h1				{color:white;}
 /*make links lime green*/
