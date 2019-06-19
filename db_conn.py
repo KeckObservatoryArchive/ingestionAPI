@@ -45,17 +45,16 @@ class db_conn(object):
         if self.dbConn:
             self.dbConn.close()
 
-    def do_query(self, query, output):
+    def do_query(self, query, output=''):
         self.db_connect()
-        print("inside the server")
 
         # Save as a list of dictionaries
 
         query = ''.join(query)
-        print(query)
         result = None
-        print(type(self.dbConn))
+        print(self.dbConn.cursor())
         with self.dbConn.cursor() as cursor:
+            print("cursor:\t",cursor)
             num = cursor.execute(query)
             result = cursor.fetchall()
         self.db_close()

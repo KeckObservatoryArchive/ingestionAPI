@@ -1,11 +1,15 @@
 import db_conn as DBC
+from datetime import datetime as DT
 
 class Instrument:
     def __init__(self, date, statusType, status):
-        self.date = date
+        self.obsDate = date
+        self.currentDate = DT.strftime(DT.now(), '%Y-%m-%d')
+        self.currentTime = DT.strftime(DT.now(), '%Y%m%d %H:%M')
         self.statusType = statusType
         self.status = status
         self.stagedir = ''
+        self.instr = ''
         self.types = {
                 'lev0':self.lev0Status,
                 'lev1':self.lev1Status,
@@ -16,14 +20,25 @@ class Instrument:
                 }
 
     def lev0Status(self):
-        #response = ''
-        #if self.status == 'good':
-        #    pass
-        #elif self.status == 'bad':
-        #    pass
-        #else:
-        #    pass
-        #return response
+        '''
+        API command to update the status of the TPX transfers
+
+        TODO: Add a statusMessage to the table
+        '''
+        print(self.obsDate)
+        query = ''.join(['UPDATE koatpx SET tpx_stat="', self.status,
+            '", tpx_time="', self.currentTime, '" WHERE utdate="', self.obsDate,
+            '" and instr="', self.instr,'";'])
+        print(query)
+
+        # Future query for file-by-file ingestion
+        # query = ''.join(['UPDATE koatpx SET tpx_stat=', self.status,
+        #     ', tpx_time=', self.currentTime, ' WHERE koaid=', self.koaid,])
+        db = DBC.db_conn()
+        if self.status not in ['DONE','ERROR']:
+            self.status == 'NA'
+        db.do_query(query)
+        print('did the query')
         return self.statusType + ' ingestion was ' + self.status
 
     def lev1Status(self):

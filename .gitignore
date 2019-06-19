@@ -4,6 +4,7 @@
 *.o
 *.exe
 *.dll
+*.swp
 
 *.7z
 *.dmg

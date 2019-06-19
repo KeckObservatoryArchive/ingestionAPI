@@ -16,6 +16,7 @@ from flask import Flask, render_template, request, redirect, url_for, session
 
 app = Flask(__name__)
 
+# Create a dictionare of the instrument Constructors
 INSTRUMENTS = {
         'deimos':deimos.Deimos,
         'esi':esi.Esi,
@@ -32,13 +33,22 @@ INSTRUMENTS = {
 
 @app.route('/tpx_status/', methods=('GET','POST'))
 def tpx_status():
+    '''
+    Method to update the transfer status of koa data
+
+    Arguments for the update will be passed via GET or POST
+    instr: the instrument that created the data
+    date: the date the instrument took the data
+    statusType: the type of file transfered
+    status: the status of the ingestion from IPAC
+    '''
     args = request.args
     instr = args['instr']
     date = args['date']
     statusType = args['statusType']
     status = args['status']
     response = ''
-    print('instr: ', instr, '\ndate: ', date, '\nstatusType: ', statusType, '\nstatus: ', status)
+    #print('instr: ', instr, '\ndate: ', date, '\nstatusType: ', statusType, '\nstatus: ', status)
     try:
         instrumentStatus = INSTRUMENTS[instr](instr, date, statusType, status)
     except Exception as e:
