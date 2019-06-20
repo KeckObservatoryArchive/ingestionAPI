@@ -38,24 +38,35 @@ def tpx_status():
 
     Arguments for the update will be passed via GET or POST
     instr: the instrument that created the data
-    date: the date the instrument took the data
+    @type instr: string
+    date: the utdate the instrument took the data
+    @type date: string
     statusType: the type of file transfered
+    @type statusType: string
     status: the status of the ingestion from IPAC
+    @type status: string
     '''
+    # get the arguments passed as a get or post
     args = request.args
+    print(args)
     instr = args['instr']
     date = args['date']
     statusType = args['statusType']
     status = args['status']
+    statusMessage = args.get('statusMessage', 'NULL')
+    print(statusMessage)
     response = ''
     #print('instr: ', instr, '\ndate: ', date, '\nstatusType: ', statusType, '\nstatus: ', status)
+
+    # Create the instrument subclass object based on instr 
     try:
-        instrumentStatus = INSTRUMENTS[instr](instr, date, statusType, status)
+        instrumentStatus = INSTRUMENTS[instr](instr, date, statusType, status, statusMessage)
     except Exception as e:
         print(e)
         print('error creating the object')
         response = 'error creating the object'
     else:
+        # execute the status function based on statusType
         try:
             response = instrumentStatus.types[instrumentStatus.statusType]()
         except Exception as e:

@@ -2,7 +2,8 @@ import instrument
 import db_conn as DBC
 
 class Nirc2(instrument.Instrument):
-    def __init__(self, instr, date, statusType, status):
-        super().__init__(date,statusType, status)
+    def __init__(self, instr, date, statusType, status, statusMessage='NULL'):
+        super().__init__(date,statusType, status, statusMessage)
         self.instr = instr
         self.stagedir = ''
+        self.datadit = ''

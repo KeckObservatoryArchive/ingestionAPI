@@ -26,6 +26,7 @@ class db_conn(object):
             self.dbConn = pymysql.connect(self.server, self.user, self.pwd, self.db, cursorclass=pymysql.cursors.DictCursor)
         except Exception as e:
             print(e)
+            print('ERROR: could not connect to the database')
             self.dbConn = 0
 
             # Backup connection
@@ -45,16 +46,17 @@ class db_conn(object):
         if self.dbConn:
             self.dbConn.close()
 
-    def do_query(self, query, output=''):
+    def do_query(self, query):
         self.db_connect()
+        if self.dbConn == 0:
+            print("Error connecting to the database")
+            return 0
 
         # Save as a list of dictionaries
 
         query = ''.join(query)
         result = None
-        print(self.dbConn.cursor())
         with self.dbConn.cursor() as cursor:
-            print("cursor:\t",cursor)
             num = cursor.execute(query)
             result = cursor.fetchall()
         self.db_close()
