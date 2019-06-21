@@ -46,7 +46,7 @@ class db_conn(object):
         if self.dbConn:
             self.dbConn.close()
 
-    def do_query(self, query):
+    def do_query(self, query, output=''):
         self.db_connect()
         if self.dbConn == 0:
             print("Error connecting to the database")
