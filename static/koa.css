@@ -8,8 +8,8 @@ a 				{color: #16c616;}
 table, th, td 	{border: 1px solid white; border-collapse: collapse;text-align: center;font-size: 9pt}
 /*make table header teal with opacity = 0.9*/
 th				{background:rgba(80,175,169,0.9);}
-/*make cell background black with opacity = 0.5*/
-td				{background:rgba(0,0,0,0.5);}
+/*make cell background black with opacity = 0.8*/
+td				{background:rgba(0,0,0,0.8);}
 /*center table in middle of page*/
 table.center 	{margin-left:auto; margin-right:auto;}
 /*make 'done' cells forest green with opacity = 0.8*/
