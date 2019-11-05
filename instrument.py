@@ -105,17 +105,17 @@ class Instrument:
         '''
         API command to update the status of the TPX transfers
         '''
-#        query = ''.join(['UPDATE koatpx SET trs_stat="', self.status,
-#            '", trs_time="', self.currentTime, '", comment=', self.statusMessage,
-#            ' WHERE utdate="', self.obsDate, '" and instr="', self.instr,'";'])
-#
-#        # Future query for file-by-file ingestion
-#        # query = ''.join(['UPDATE koatpx SET trs_stat=', self.status,
-#        #     ', trs_time=', self.currentTime, ' WHERE koaid=', self.koaid,])
-#        db = DBC.db_conn()
-#        if self.status not in ['DONE','ERROR']:
-#            self.status == 'NA'
-#        db.do_query(query)
+        query = ''.join(['UPDATE koatpx SET trs_stat="', self.status,
+            '", trs_time="', self.currentTime, '", comment=', self.statusMessage,
+            ' WHERE utdate="', self.obsDate, '" and instr="', self.instr,'";'])
+
+        # Future query for file-by-file ingestion
+        # query = ''.join(['UPDATE koatpx SET trs_stat=', self.status,
+        #     ', trs_time=', self.currentTime, ' WHERE koaid=', self.koaid,])
+        db = DBC.db_conn()
+        if self.status not in ['DONE','ERROR']:
+            self.status == 'NA'
+        db.do_query(query)
         return self.statusType + ' ingestion was ' + self.status
 
     def psfrStatus(self):
