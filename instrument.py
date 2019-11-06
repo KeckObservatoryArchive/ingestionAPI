@@ -35,8 +35,6 @@ class Instrument:
         self.statusType = statusType
         self.status = status
         self.statusMessage = statusMessage
-        self.datadir = ''
-        self.stagedir = ''
         self.instr = ''
 
         # Dictionary of all the status methods by statusType keyword
