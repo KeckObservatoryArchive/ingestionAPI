@@ -1,8 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 from tpx_gui import tpx_gui 
-#from api import *
+from tpx_status import tpx_status, INSTRUMENTS
 
-#import tpx_gui
 app = Flask(__name__)
 
 def get_resource_as_string(name, charset='utf-8'):
@@ -20,7 +19,7 @@ def tpxgui():
 
 @app.route('/tpx_status/',methods=['POST','GET'])
 def tpx_status():
-    return 
+    return tpx_status()
 
 #run on port 50001
 if __name__ == '__main__':

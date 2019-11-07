@@ -1,4 +1,3 @@
-import db_conn
 import instrument
 import nires
 import hires
@@ -13,8 +12,6 @@ import mosfire
 import weather
 
 from flask import Flask, render_template, request, redirect, url_for, session
-
-app = Flask(__name__)
 
 # Create a dictionare of the instrument Constructors
 INSTRUMENTS = {
@@ -31,7 +28,6 @@ INSTRUMENTS = {
         'weather':weather.Weather
         }
 
-@app.route('/tpx_status/', methods=('GET','POST'))
 def tpx_status():
     '''
     Method to update the transfer status of koa data
@@ -56,7 +52,6 @@ def tpx_status():
     statusMessage = args.get('statusMessage', 'NULL')
     print(statusMessage)
     response = ''
-    #print('instr: ', instr, '\ndate: ', date, '\nstatusType: ', statusType, '\nstatus: ', status)
 
     # Create the instrument subclass object based on instr 
     try:
@@ -77,8 +72,3 @@ def tpx_status():
             print(response)
     return response
 
-if __name__ == '__main__':
-    host = '0.0.0.0'
-    port = 50505
-    debug = True
-    app.run(host=host,port=port,debug=debug)
