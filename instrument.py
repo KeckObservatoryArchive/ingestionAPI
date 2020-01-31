@@ -30,11 +30,13 @@ class Instrument:
     '''
     def __init__(self, date, statusType, status, statusMessage='NULL'):
         self.obsDate = date
-        self.currentDate = DT.strftime(DT.now(), '%Y-%m-%d')
-        self.currentTime = DT.strftime(DT.now(), '%Y%m%d %H:%M')
+        self.currentDate = DT.strftime(DT.utcnow(), '%Y-%m-%d')
+        self.currentTime = DT.strftime(DT.utcnow(), '%Y%m%d %H:%M')
         self.statusType = statusType
         self.status = status
         self.statusMessage = statusMessage
+        self.datadir = ''
+        self.stagedir = ''
         self.instr = ''
 
         # Dictionary of all the status methods by statusType keyword
@@ -103,18 +105,36 @@ class Instrument:
         '''
         API command to update the status of the TPX transfers
         '''
-        query = ''.join(['UPDATE koatpx SET trs_stat="', self.status,
-            '", trs_time="', self.currentTime, '", comment=', self.statusMessage,
-            ' WHERE utdate="', self.obsDate, '" and instr="', self.instr,'";'])
+        if self.status in ['DONE','ERROR']:
+            ingestTime = DT.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+            query = ('UPDATE psfr SET ingest_stat="',
+                     self.status,
+                     '", ingest_time="',
+                     ingestTime,
+                     '"',
+                     ' WHERE utdate="',
+                     self.obsDate,
+                     '" and instr="',
+                     self.instr,
+                     '"')
+#        # Future query for file-by-file ingestion
+#        # query = ''.join(['UPDATE koatpx SET trs_stat=', self.status,
+#        #     ', trs_time=', self.currentTime, ' WHERE koaid=', self.koaid,])
 
-        # Future query for file-by-file ingestion
-        # query = ''.join(['UPDATE koatpx SET trs_stat=', self.status,
-        #     ', trs_time=', self.currentTime, ' WHERE koaid=', self.koaid,])
-        db = DBC.db_conn()
-        if self.status not in ['DONE','ERROR']:
-            self.status == 'NA'
-        db.do_query(query)
-        return self.statusType + ' ingestion was ' + self.status
+            db = DBC.db_conn(test=False)
+
+            test = db.do_query(query)
+
+        myString = self.statusType + ' ingestion was ' + self.status
+        myDict = {}
+        myDict['APIStatus'] = 'COMPLETE'
+        myDict['UTDate'] = self.obsDate
+        myDict['Instrument'] = self.instr
+        myDict['statusType'] = 'trs'
+        myDict['status'] = self.status
+        myDict['Message'] = myString
+        myDict['Timestamp'] = ingestTime
+        return myDict
 
     def psfrStatus(self):
         '''
