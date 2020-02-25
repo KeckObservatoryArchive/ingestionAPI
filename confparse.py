@@ -1,14 +1,14 @@
 import json
 
 class ConfigParser:
-    def __init__(self, config):
+    def __init__(self, dbm, svc, config):
         with open(config,'r') as f:
             conf = json.loads(f.read())
-        self.host = conf['host']
-        self.port = conf['port']
-        self.db = conf['db']
-        self.user = conf['user']
-        self.word = conf['word']
+        self.host = conf[dbm][svc]['host']
+        self.port = conf[dbm][svc]['port']
+        self.db = conf[dbm][svc]['db']
+        self.user = conf[dbm][svc]['user']
+        self.word = conf[dbm][svc]['word']
         del conf
 
     def get_host(self):

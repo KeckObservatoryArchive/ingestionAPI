@@ -3,8 +3,8 @@ import pymysql
 import confparse
 
 class db_conn(object):
-    def __init__(self, database='', test=True):
-        config = confparse.ConfigParser('config.live.ini')
+    def __init__(self, dbm, svc, test=True):
+        config = confparse.ConfigParser(dbm, svc, "config.live.ini")
         self.db = config.get_db()
         self.server = config.get_host()
         self.port = config.get_port()
@@ -22,11 +22,9 @@ class db_conn(object):
         '''
         try:
             # Primary connection
-
             self.dbConn = pymysql.connect(self.server, self.user, self.pwd, self.db, cursorclass=pymysql.cursors.DictCursor)
         except Exception as e:
-            print(e)
-            print('ERROR: could not connect to the database')
+            print('ERROR: could not connect to the database', e)
             self.dbConn = 0
 
             # Backup connection

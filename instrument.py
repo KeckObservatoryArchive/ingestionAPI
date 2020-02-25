@@ -1,6 +1,6 @@
 import db_conn as DBC
 from datetime import datetime as DT
-import send_email                       # from /kroot/archive/common
+from send_email import send_email       # from /kroot/archive/common
 
 class Instrument:
     '''
@@ -110,6 +110,7 @@ class Instrument:
         '''
         # set up return dictionary
         myString = self.statusType + ' ingestion was ' + self.status
+        ingestTime = DT.utcnow().strftime('%Y-%m-%d %H:%M:%S')
         myDict = {}
         myDict['APIStatus'] = 'COMPLETE'
         myDict['UTDate'] = self.obsDate
@@ -121,10 +122,11 @@ class Instrument:
 
         # Check to see what the status from IPAC was
         if self.status in ['DONE','ERROR']:
-            ingestTime = DT.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-            query = ('UPDATE psfr SET ingest_stat="',
-                     self.status,
-                     '", ingest_time="',
+            #query = ('UPDATE psfr SET ingest_stat="',
+            #         self.status,
+            #         '", ingest_time="',
+            query = ('UPDATE psfr SET ',
+                     'ingest_time="',
                      ingestTime,
                      '"',
                      ' WHERE utdate="',
@@ -136,9 +138,9 @@ class Instrument:
 #        # query = ''.join(['UPDATE koatpx SET trs_stat=', self.status,
 #        #     ', trs_time=', self.currentTime, ' WHERE koaid=', self.koaid,])
             try:
-                db = DBC.db_conn(test=False)
+                db = DBC.db_conn("mysql","koa",True)
             except Exception as e:
-                print('Error setting up the mongo connection')
+                print('Error setting up the connection object: ', e)
             else:
                 try:
                     test = db.do_query(query)
@@ -150,8 +152,6 @@ class Instrument:
         else:
             send_email(self.emailTo, self.emailFrom, 'trs Ingestion was not completed', self.statusMessage)
             myDict['APIStatus'] = 'INCOMPLETE'
-            return myDict
-
         return myDict
 
     def psfrStatus(self):
