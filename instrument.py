@@ -1,5 +1,6 @@
 import db_conn as DBC
 from datetime import datetime as DT
+import send_email                       # from /kroot/archive/common
 
 class Instrument:
     '''
@@ -38,6 +39,8 @@ class Instrument:
         self.datadir = ''
         self.stagedir = ''
         self.instr = ''
+        self.emailTo = 'mbrown@keck.hawaii.edu'
+        self.emailFrom = 'koaadmin@keck.hawaii.edu'
 
         # Dictionary of all the status methods by statusType keyword
         self.types = {
@@ -105,6 +108,18 @@ class Instrument:
         '''
         API command to update the status of the TPX transfers
         '''
+        # set up return dictionary
+        myString = self.statusType + ' ingestion was ' + self.status
+        myDict = {}
+        myDict['APIStatus'] = 'COMPLETE'
+        myDict['UTDate'] = self.obsDate
+        myDict['Instrument'] = self.instr
+        myDict['statusType'] = 'trs'
+        myDict['status'] = self.status
+        myDict['Message'] = myString
+        myDict['Timestamp'] = ingestTime
+
+        # Check to see what the status from IPAC was
         if self.status in ['DONE','ERROR']:
             ingestTime = DT.utcnow().strftime('%Y-%m-%d %H:%M:%S')
             query = ('UPDATE psfr SET ingest_stat="',
@@ -120,20 +135,23 @@ class Instrument:
 #        # Future query for file-by-file ingestion
 #        # query = ''.join(['UPDATE koatpx SET trs_stat=', self.status,
 #        #     ', trs_time=', self.currentTime, ' WHERE koaid=', self.koaid,])
+            try:
+                db = DBC.db_conn(test=False)
+            except Exception as e:
+                print('Error setting up the mongo connection')
+            else:
+                try:
+                    test = db.do_query(query)
+                except Exception as e:
+                    print('could not complete the query')
 
-            db = DBC.db_conn(test=False)
+            if self.status == 'ERROR':
+                send_email(self.emailTo,self.emailFrom,'TRS Ingestion Errored Out',self.statusMessage)
+        else:
+            send_email(self.emailTo, self.emailFrom, 'trs Ingestion was not completed', self.statusMessage)
+            myDict['APIStatus'] = 'INCOMPLETE'
+            return myDict
 
-            test = db.do_query(query)
-
-        myString = self.statusType + ' ingestion was ' + self.status
-        myDict = {}
-        myDict['APIStatus'] = 'COMPLETE'
-        myDict['UTDate'] = self.obsDate
-        myDict['Instrument'] = self.instr
-        myDict['statusType'] = 'trs'
-        myDict['status'] = self.status
-        myDict['Message'] = myString
-        myDict['Timestamp'] = ingestTime
         return myDict
 
     def psfrStatus(self):

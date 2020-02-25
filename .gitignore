@@ -15,6 +15,7 @@
 *.tar
 *.zip
 
+*live*
 config.live.ini
 
 __pycache__/
