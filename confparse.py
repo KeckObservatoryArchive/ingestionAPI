@@ -9,6 +9,8 @@ class ConfigParser:
         self.db = conf['db']
         self.user = conf['user']
         self.word = conf['word']
+        self.emailto = conf['emailto']
+        self.emailfrom = conf['emailfrom']
         del conf
 
     def get_host(self):
@@ -25,3 +27,9 @@ class ConfigParser:
 
     def get_db(self):
         return self.db
+
+    def get_emailto(self):
+        return self.emailto
+
+    def get_emailfrom(self):
+        return self.emailfrom
