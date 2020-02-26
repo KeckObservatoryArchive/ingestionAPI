@@ -36,14 +36,14 @@ class Instrument:
     def __init__(self, date, statusType, status, statusMessage='NULL'):
         self.obsDate = date
         self.currentDate = DT.strftime(DT.utcnow(), '%Y-%m-%d')
-        self.currentTime = DT.strftime(DT.utcnow(), '%Y%m%d %H:%M')
+        self.currentTime = DT.strftime(DT.utcnow(), '%Y%m%d %H:%M:%S')
         self.statusType = statusType
         self.status = status
         self.statusMessage = statusMessage
         self.datadir = ''
         self.stagedir = ''
         self.instr = ''
-        self.emailTo = 'mbrown@keck.hawaii.edu'
+        self.emailTo = 'koaadmin@keck.hawaii.edu'
         self.emailFrom = 'koaadmin@keck.hawaii.edu'
 
         # Dictionary of all the status methods by statusType keyword
@@ -64,16 +64,16 @@ class Instrument:
         API command to update the status of the TPX transfers
         '''
         query = ''.join(['UPDATE koatpx SET tpx_stat="', self.status,
-            '", tpx_time="', self.currentTime, '", comment=', self.statusMessage,
+            '", tpx_time="', self.currentTime[:-3], '", comment=', self.statusMessage,
             ' WHERE utdate="', self.obsDate, '" and instr="', self.instr,'";'])
 
         # Future query for file-by-file ingestion
         # query = ''.join(['UPDATE koatpx SET tpx_stat=', self.status,
         #     ', tpx_time=', self.currentTime, ' WHERE koaid=', self.koaid,])
-        db = DBC.db_conn()
-        if self.status not in ['DONE','ERROR']:
-            self.status == 'NA'
-        db.do_query(query)
+#        db = DBC.db_conn()
+#        if self.status not in ['DONE','ERROR']:
+#            self.status == 'NA'
+#        db.do_query(query)
         return self.statusType + ' ingestion was ' + self.status
 
     def lev1Status(self):
@@ -81,16 +81,16 @@ class Instrument:
         API command to update the status of the TPX transfers
         '''
         query = ''.join(['UPDATE koatpx SET lev1_stat="', self.status,
-            '", lev1_time="', self.currentTime, '", comment=', self.statusMessage,
+            '", lev1_time="', self.currentTime[:-3], '", comment=', self.statusMessage,
             ' WHERE utdate="', self.obsDate, '" and instr="', self.instr,'";'])
 
         # Future query for file-by-file ingestion
         # query = ''.join(['UPDATE koatpx SET lev1_stat=', self.status,
         #     ', lev1_time=', self.currentTime, ' WHERE koaid=', self.koaid,])
-        db = DBC.db_conn()
-        if self.status not in ['DONE','ERROR']:
-            self.status == 'NA'
-        db.do_query(query)
+#        db = DBC.db_conn()
+#        if self.status not in ['DONE','ERROR']:
+#            self.status == 'NA'
+#        db.do_query(query)
         return self.statusType + ' ingestion was ' + self.status
 
     def lev2Status(self):
@@ -98,12 +98,12 @@ class Instrument:
         API command to update the status of the TPX transfers
         '''
 #        query = ''.join(['UPDATE koatpx SET lev2_stat="', self.status,
-#            '", lev2_time="', self.currentTime, '", comment=', self.statusMessage,
+#            '", lev2_time="', self.currentTime[:-3], '", comment=', self.statusMessage,
 #            ' WHERE utdate="', self.obsDate, '" and instr="', self.instr,'";'])
 #
 #        # Future query for file-by-file ingestion
 #        # query = ''.join(['UPDATE koatpx SET lev2_stat=', self.status,
-#        #     ', lev2_time=', self.currentTime, ' WHERE koaid=', self.koaid,])
+#        #     ', lev2_time=', self.currentTime[:-3], ' WHERE koaid=', self.koaid,])
 #        db = DBC.db_conn()
 #        if self.status not in ['DONE','ERROR']:
 #            self.status == 'NA'
@@ -130,11 +130,11 @@ class Instrument:
 
         # Check to see what the status from IPAC was
         if self.status in ['DONE','ERROR']:
-            #query = ('UPDATE psfr SET ingest_stat="',
-            #         self.status,
-            #         '", ingest_time="',
-            query = ('UPDATE psfr SET ',
-                     'ingest_time="',
+            #query = ('UPDATE psfr SET ',
+            #         'ingest_time="',
+            query = ('UPDATE psfr SET ingest_stat="',
+                     self.status,
+                     '", ingest_time="',
                      ingestTime,
                      '"',
                      ' WHERE utdate="',
@@ -147,7 +147,7 @@ class Instrument:
 #        # query = ''.join(['UPDATE koatpx SET trs_stat=', self.status,
 #        #     ', trs_time=', self.currentTime, ' WHERE koaid=', self.koaid,])
             try:
-                db = DBC.db_conn("mysql","koa",True)
+                db = DBC.db_conn("mysql","koa",test=True)
             except Exception as e:
                 print('Error setting up the connection object: ', e)
             else:
@@ -168,13 +168,14 @@ class Instrument:
         '''
         API command to update the status of the TPX transfers
         '''
-#        query = ''.join(['UPDATE koatpx SET psfr_stat="', self.status,
-#            '", psfr_time="', self.currentTime, '", comment=', self.statusMessage,
-#            ' WHERE utdate="', self.obsDate, '" and instr="', self.instr,'";'])
+#        query = ''.join(['UPDATE psfr SET ingest_stat="', self.status,
+#            '", ingest_time="', self.currentTime, '",
+#            ' WHERE utdate="', self.obsDate, 
+#            '" and instr="', self.instr,'";'])
 #
 #        # Future query for file-by-file ingestion
-#        # query = ''.join(['UPDATE koatpx SET psfr_stat=', self.status,
-#        #     ', psfr_time=', self.currentTime, ' WHERE koaid=', self.koaid,])
+#        # query = ''.join(['UPDATE psfr SET ingest_stat=', self.status,
+#        #     ', ingest_time=', self.currentTime, ' WHERE koaid=', self.koaid])
 #        db = DBC.db_conn()
 #        if self.status not in ['DONE','ERROR']:
 #            self.status == 'NA'
@@ -186,16 +187,16 @@ class Instrument:
         API command to update the status of the TPX transfers
         '''
         query = ''.join(['UPDATE koatpx SET metadata_stat="', self.status,
-            '", metadata_time="', self.currentTime, '", comment=', self.statusMessage,
+            '", metadata_time="', self.currentTime[:-3], '", comment=', self.statusMessage,
             ' WHERE utdate="', self.obsDate, '" and instr="', self.instr,'";'])
 
         # Future query for file-by-file ingestion
         # query = ''.join(['UPDATE koatpx SET psfr_stat=', self.status,
         #     ', psfr_time=', self.currentTime, ' WHERE koaid=', self.koaid,])
-        db = DBC.db_conn()
-        if self.status not in ['DONE','ERROR']:
-            self.status == 'NA'
-        db.do_query(query)
+#        db = DBC.db_conn()
+#        if self.status not in ['DONE','ERROR']:
+#            self.status == 'NA'
+#        db.do_query(query)
         return self.statusType + ' ingestion was ' + self.status
 
     def weatherStatus(self):
