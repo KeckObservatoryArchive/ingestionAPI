@@ -1,6 +1,10 @@
 import db_conn as DBC
 from datetime import datetime as DT
-from send_email import send_email       # from /kroot/archive/common
+import sys
+import confparse
+
+sys.path.append('/kroot/archive/common/default')
+from send_email import send_email
 
 class Instrument:
     '''
@@ -52,6 +56,8 @@ class Instrument:
                 'psfr':self.psfrStatus,
                 'weather':self.weatherStatus
                 }
+
+        self.config = confparse.ConfigParser('config.live.ini')
 
     def lev0Status(self):
         '''
@@ -120,6 +126,8 @@ class Instrument:
         myDict['Message'] = myString
         myDict['Timestamp'] = ingestTime
 
+        subject = 'trsStatus error'
+
         # Check to see what the status from IPAC was
         if self.status in ['DONE','ERROR']:
             #query = ('UPDATE psfr SET ingest_stat="',
@@ -134,6 +142,7 @@ class Instrument:
                      '" and instr="',
                      self.instr,
                      '"')
+
 #        # Future query for file-by-file ingestion
 #        # query = ''.join(['UPDATE koatpx SET trs_stat=', self.status,
 #        #     ', trs_time=', self.currentTime, ' WHERE koaid=', self.koaid,])
@@ -148,10 +157,11 @@ class Instrument:
                     print('could not complete the query')
 
             if self.status == 'ERROR':
-                send_email(self.emailTo,self.emailFrom,'TRS Ingestion Errored Out',self.statusMessage)
+                sendEmail(subject, myDict)
         else:
-            send_email(self.emailTo, self.emailFrom, 'trs Ingestion was not completed', self.statusMessage)
             myDict['APIStatus'] = 'INCOMPLETE'
+            sendEmail(subject, myDict)
+
         return myDict
 
     def psfrStatus(self):
@@ -190,4 +200,13 @@ class Instrument:
 
     def weatherStatus(self):
         return self.statusType + ' ingestion was ' + self.status
+
+    def sendEmail(self, subject, myDict):
+        '''
+        '''
+        
+        body = ''
+        for key,value in myDict.items():
+            body = f"{body}\n{key} -- {value}"
+        send_email(self.config.get_emailto(), self.config.get_emailfrom(), subject, body)
 
