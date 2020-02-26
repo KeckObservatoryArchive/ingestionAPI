@@ -57,7 +57,7 @@ class Instrument:
                 'weather':self.weatherStatus
                 }
 
-        self.config = confparse.ConfigParser('config.live.ini')
+        self.config = confparse.ConfigParser('', '', 'config.live.ini')
 
     def lev0Status(self):
         '''
