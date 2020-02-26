@@ -1,5 +1,10 @@
 import db_conn as DBC
 from datetime import datetime as DT
+import sys
+import confparse
+
+sys.path.append('/kroot/archive/common/default')
+from send_email import *
 
 class Instrument:
     '''
@@ -49,6 +54,8 @@ class Instrument:
                 'psfr':self.psfrStatus,
                 'weather':self.weatherStatus
                 }
+
+        self.config = confparse.ConfigParser('config.live.ini')
 
     def lev0Status(self):
         '''
@@ -117,6 +124,7 @@ class Instrument:
                      '" and instr="',
                      self.instr,
                      '"')
+
 #        # Future query for file-by-file ingestion
 #        # query = ''.join(['UPDATE koatpx SET trs_stat=', self.status,
 #        #     ', trs_time=', self.currentTime, ' WHERE koaid=', self.koaid,])
@@ -134,6 +142,14 @@ class Instrument:
         myDict['status'] = self.status
         myDict['Message'] = myString
         myDict['Timestamp'] = ingestTime
+
+        if self.status == 'ERROR':
+            subject = 'trsStatus error'
+            body = ''
+            for key,value in myDict.items():
+                body = f"{body}\n{key} -- {value}"
+            send_email(self.config.get_emailto(), self.config.get_emailfrom(), subject, body)
+
         return myDict
 
     def psfrStatus(self):
