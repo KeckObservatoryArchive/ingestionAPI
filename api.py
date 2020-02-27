@@ -49,7 +49,7 @@ def tpx_status():
     '''
     # get the arguments passed as a get or post
     args = request.args
-    print(args)
+    #print(args)
     instr = args['instr'].lower()
     date = args['date']
     statusType = args['statusType']
@@ -57,19 +57,17 @@ def tpx_status():
     statusMessage = args.get('statusMessage', 'NULL')
     #print(statusMessage)
     response = ''
-    print('instr: ', instr, '\ndate: ', date, '\nstatusType: ', statusType, '\nstatus: ', status)
+    #print('instr: ', instr, '\ndate: ', date, '\nstatusType: ', statusType, '\nstatus: ', status)
 
     # Create the instrument subclass object based on instr 
     try:
         instrumentStatus = INSTRUMENTS[instr](instr, date, statusType, status, statusMessage)
     except Exception as e:
-        print(e)
-        print('error creating the object')
+        print('error creating the object: ', e)
         response = {'APIStatus':'ERROR', 'Message':'error creating the object'}
     else:
         # execute the status function based on statusType
         try:
-            print('statusType: ', instrumentStatus.types[instrumentStatus.statusType])
             response = instrumentStatus.types[instrumentStatus.statusType]()
         except Exception as e:
             print('error executing the status type: ', e)

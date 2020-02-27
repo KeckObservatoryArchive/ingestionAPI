@@ -5,7 +5,7 @@ class ConfigParser:
         with open(config,'r') as f:
             conf = json.loads(f.read())
 
-            self.host = conf[dbm][svc]['host']
+        self.host = conf[dbm][svc]['host']
         self.port = conf[dbm][svc]['port']
         self.db = conf[dbm][svc]['db']
         self.user = conf[dbm][svc]['user']
