@@ -57,7 +57,7 @@ class Instrument:
                 'weather':self.weatherStatus
                 }
 
-        self.config = confparse.ConfigParser('', '', 'config.live.ini')
+        self.config = confparse.ConfigParser(None, None, 'config.live.ini')
 
     def lev0Status(self):
         '''
@@ -147,7 +147,7 @@ class Instrument:
 #        # query = ''.join(['UPDATE koatpx SET trs_stat=', self.status,
 #        #     ', trs_time=', self.currentTime, ' WHERE koaid=', self.koaid,])
             try:
-                db = DBC.db_conn("mysql","koa",test=True)
+                db = DBC.db_conn("mysql","koa",test=False)
             except Exception as e:
                 print('Error setting up the connection object: ', e)
             else:
@@ -157,10 +157,10 @@ class Instrument:
                     print('could not complete the query')
 
             if self.status == 'ERROR':
-                sendEmail(subject, myDict)
+                self.sendEmail(subject, myDict)
         else:
             myDict['APIStatus'] = 'INCOMPLETE'
-            sendEmail(subject, myDict)
+            self.sendEmail(subject, myDict)
 
         return myDict
 
