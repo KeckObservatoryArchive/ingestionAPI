@@ -112,6 +112,7 @@ class Instrument:
         '''
         API command to update the status of the TPX transfers
         '''
+        
         # set up return dictionary
         myString = self.statusType + ' ingestion was ' + self.status
         ingestTime = DT.utcnow().strftime('%Y-%m-%d %H:%M:%S')
@@ -128,8 +129,6 @@ class Instrument:
 
         # Check to see what the status from IPAC was
         if self.status in ['DONE','ERROR']:
-            #query = ('UPDATE psfr SET ',
-            #         'ingest_time="',
             query = ('UPDATE psfr SET ingest_stat="',
                      self.status,
                      '", ingest_time="',
@@ -141,22 +140,29 @@ class Instrument:
                      self.instr,
                      '"')
 
-#        # Future query for file-by-file ingestion
-#        # query = ''.join(['UPDATE koatpx SET trs_stat=', self.status,
-#        #     ', trs_time=', self.currentTime, ' WHERE koaid=', self.koaid,])
+            # Update the database or error out appropriately
             try:
                 db = DBC.db_conn("mysql","koa",test=False)
             except Exception as e:
                 print('Error setting up the connection object: ', e)
+                myDict['APIStatus'] = 'ERROR'
+                myDict['Message'] = f'Error setting up the connection object: {e}'
             else:
                 try:
                     test = db.do_query(query)
                 except Exception as e:
                     print('could not complete the query')
+                    myDict['APIStatus'] = 'ERROR'
+                    myDict['Message'] = f'Could not complete the query: {query}'
 
-            if self.status == 'ERROR':
+            # In case of an error, send an email out
+            if self.status == 'ERROR' or myDict['APIStatus'] == 'ERROR':
                 self.sendEmail(subject, myDict)
+
+            if db: db.db_close()
+
         else:
+            # Send an email out if the query was not complete
             myDict['APIStatus'] = 'INCOMPLETE'
             self.sendEmail(subject, myDict)
 
@@ -202,6 +208,9 @@ class Instrument:
 
     def sendEmail(self, subject, myDict):
         '''
+        Wrapper to take the input dictionary and create a string to pass
+        into send_email().  The email sender and recipient addresses are 
+        taken from the config file.
         '''
         
         body = ''
