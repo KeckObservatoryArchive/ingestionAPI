@@ -43,8 +43,6 @@ class Instrument:
         self.datadir = ''
         self.stagedir = ''
         self.instr = ''
-        self.emailTo = 'koaadmin@keck.hawaii.edu'
-        self.emailFrom = 'koaadmin@keck.hawaii.edu'
 
         # Dictionary of all the status methods by statusType keyword
         self.types = {
