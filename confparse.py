@@ -5,11 +5,13 @@ class ConfigParser:
         with open(config,'r') as f:
             conf = json.loads(f.read())
 
-        self.host = conf[dbm][svc]['host']
-        self.port = conf[dbm][svc]['port']
-        self.db = conf[dbm][svc]['db']
-        self.user = conf[dbm][svc]['user']
-        self.word = conf[dbm][svc]['word']
+        if dbm != None and svc != None:
+            self.host = conf[dbm][svc]['host']
+            self.port = conf[dbm][svc]['port']
+            self.db = conf[dbm][svc]['db']
+            self.user = conf[dbm][svc]['user']
+            self.word = conf[dbm][svc]['word']
+
         self.emailto = conf['emailto']
         self.emailfrom = conf['emailfrom']
         
