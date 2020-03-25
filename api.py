@@ -68,6 +68,7 @@ def tpx_status():
     else:
         # execute the status function based on statusType
         try:
+            instrumentStatus.myDict['Instrument'] = instrumentStatus.instr
             response = instrumentStatus.types[instrumentStatus.statusType]()
         except Exception as e:
             print('error executing the status type: ', e)
