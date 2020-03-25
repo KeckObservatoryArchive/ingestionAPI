@@ -43,6 +43,8 @@ class Instrument:
         self.datadir = ''
         self.stagedir = ''
         self.instr = ''
+        self.emailTo = 'koaadmin@keck.hawaii.edu'
+        self.emailFrom = 'koaadmin@keck.hawaii.edu'
 
         # Dictionary of all the status methods by statusType keyword
         self.types = {
@@ -55,24 +57,57 @@ class Instrument:
                 'weather':self.weatherStatus
                 }
 
+        # Dictionary with information to return back to user
+        self.myDict = {}
+        self.myDict['APIStatus'] = 'COMPLETE'
+        self.myDict['UTDate'] = self.obsDate
+        self.myDict['Instrument'] = self.instr
+        self.myDict['statusType'] = self.statusType
+        self.myDict['status'] = self.status
+        self.myDict['message'] = self.statusType + ' ingestion was ' + self.status
+        self.myDict['Timestamp'] = self.currentTime
+
         self.config = confparse.ConfigParser(None, None, 'config.live.ini')
 
     def lev0Status(self):
         '''
         API command to update the status of the TPX transfers
         '''
-        query = ''.join(['UPDATE koatpx SET tpx_stat="', self.status,
-            '", tpx_time="', self.currentTime[:-3], '", comment=', self.statusMessage,
-            ' WHERE utdate="', self.obsDate, '" and instr="', self.instr,'";'])
 
-        # Future query for file-by-file ingestion
-        # query = ''.join(['UPDATE koatpx SET tpx_stat=', self.status,
-        #     ', tpx_time=', self.currentTime, ' WHERE koaid=', self.koaid,])
-#        db = DBC.db_conn()
-#        if self.status not in ['DONE','ERROR']:
-#            self.status == 'NA'
-#        db.do_query(query)
-        return self.statusType + ' ingestion was ' + self.status
+        ingestTime = DT.utcnow().strftime('%Y%m%d %H:%M')
+
+        subject = 'lev0 error'
+
+        # Check to see what the status from IPAC was
+        if self.status in ['DONE','ERROR']:
+            query = ('UPDATE koatpx SET tpx_stat="',
+                     self.status,
+                     '", tpx_time="',
+                     ingestTime,
+                     '"',
+                     ' WHERE utdate="',
+                     self.obsDate,
+                     '" and instr="',
+                     self.instr,
+                     '"')
+
+            try:
+                db = DBC.db_conn("mysql","koaSol",test=False)
+            except Exception as e:
+                print('Error setting up the connection object: ', e)
+            else:
+                try:
+                    test = db.do_query(query)
+                except Exception as e:
+                    print('could not complete the query')
+
+            if self.status == 'ERROR':
+                self.sendEmail(subject, self.myDict)
+        else:
+            self.myDict['APIStatus'] = 'INCOMPLETE'
+            self.sendEmail(subject, self.myDict)
+
+        return self.myDict
 
     def lev1Status(self):
         '''
@@ -112,23 +147,15 @@ class Instrument:
         '''
         API command to update the status of the TPX transfers
         '''
-        
-        # set up return dictionary
-        myString = self.statusType + ' ingestion was ' + self.status
+
         ingestTime = DT.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-        myDict = {}
-        myDict['APIStatus'] = 'COMPLETE'
-        myDict['UTDate'] = self.obsDate
-        myDict['Instrument'] = self.instr
-        myDict['statusType'] = 'trs'
-        myDict['status'] = self.status
-        myDict['Message'] = myString
-        myDict['Timestamp'] = ingestTime
 
         subject = 'trsStatus error'
 
         # Check to see what the status from IPAC was
         if self.status in ['DONE','ERROR']:
+            #query = ('UPDATE psfr SET ',
+            #         'ingest_time="',
             query = ('UPDATE psfr SET ingest_stat="',
                      self.status,
                      '", ingest_time="',
@@ -140,33 +167,27 @@ class Instrument:
                      self.instr,
                      '"')
 
-            # Update the database or error out appropriately
+#        # Future query for file-by-file ingestion
+#        # query = ''.join(['UPDATE koatpx SET trs_stat=', self.status,
+#        #     ', trs_time=', self.currentTime, ' WHERE koaid=', self.koaid,])
             try:
                 db = DBC.db_conn("mysql","koa",test=False)
             except Exception as e:
                 print('Error setting up the connection object: ', e)
-                myDict['APIStatus'] = 'ERROR'
-                myDict['Message'] = f'Error setting up the connection object: {e}'
             else:
                 try:
-                    test = db.do_query(query)
+                    pass
+#                    test = db.do_query(query)
                 except Exception as e:
                     print('could not complete the query')
-                    myDict['APIStatus'] = 'ERROR'
-                    myDict['Message'] = f'Could not complete the query: {query}'
 
-            # In case of an error, send an email out
-            if self.status == 'ERROR' or myDict['APIStatus'] == 'ERROR':
-                self.sendEmail(subject, myDict)
-
-            if db: db.db_close()
-
+            if self.status == 'ERROR':
+                self.sendEmail(subject, self.myDict)
         else:
-            # Send an email out if the query was not complete
-            myDict['APIStatus'] = 'INCOMPLETE'
-            self.sendEmail(subject, myDict)
+            self.myDict['APIStatus'] = 'INCOMPLETE'
+            self.sendEmail(subject, self.myDict)
 
-        return myDict
+        return self.myDict
 
     def psfrStatus(self):
         '''
@@ -208,9 +229,6 @@ class Instrument:
 
     def sendEmail(self, subject, myDict):
         '''
-        Wrapper to take the input dictionary and create a string to pass
-        into send_email().  The email sender and recipient addresses are 
-        taken from the config file.
         '''
         
         body = ''
