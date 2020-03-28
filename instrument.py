@@ -64,6 +64,7 @@ class Instrument:
         self.myDict['Instrument'] = self.instr
         self.myDict['statusType'] = self.statusType
         self.myDict['status'] = self.status
+        self.myDict['statusMessage'] = self.statusMessage
         self.myDict['message'] = self.statusType + ' ingestion was ' + self.status
         self.myDict['Timestamp'] = self.currentTime
 
