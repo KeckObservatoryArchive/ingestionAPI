@@ -2,6 +2,7 @@ import db_conn as DBC
 from datetime import datetime as DT
 import sys
 import confparse
+import urllib.request as URL
 
 sys.path.append('/kroot/archive/common/default')
 from send_email import send_email
@@ -45,6 +46,7 @@ class Instrument:
         self.instr = ''
         self.emailTo = 'koaadmin@keck.hawaii.edu'
         self.emailFrom = 'koaadmin@keck.hawaii.edu'
+        self.BASEURL = 'https://www.keck.hawaii.edu/software/db_api/'
 
         # Dictionary of all the status methods by statusType keyword
         self.types = {
@@ -231,9 +233,18 @@ class Instrument:
     def sendEmail(self, subject, myDict):
         '''
         '''
-        
+
         body = ''
         for key,value in myDict.items():
             body = f"{body}\n{key} -- {value}"
         send_email(self.config.get_emailto(), self.config.get_emailfrom(), subject, body)
+
+    def getPIEmail (self, semid):
+        result = None
+        url = f'{self.BASEURL}proposalsAPI.php?ktn={semid}&cmd=getPIEmail'
+        try:
+            result = URL.urlopen(url).read().decode('utf-8')
+        except Exception as e:
+            print(f'could not open url: {e}')
+        return result
 
