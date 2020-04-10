@@ -59,7 +59,7 @@ def dep_pi_email_OLD(instr, utdate):
 
         #check for a matching processed record from koa table
         utdate_beg = row['utdate_beg']
-        koatpx = query("koa", select * from koatpx where utdate='{utdate_beg}' and instr='{instr}'")
+        koatpx = query("koa", f"select * from koatpx where utdate='{utdate_beg}' and instr='{instr}'")
         if len(koatpx) == 0: 
             continue
 
@@ -80,7 +80,7 @@ def dep_pi_email_OLD(instr, utdate):
                           info[pi_username], info[pi_password])
 
         #update koapi_send
-        query(f"update koapi_send set data_notified=1,dvd_notified=1 where semid='{pcode}' and utdate_beg='{utdate}'")
+        query(f"update koapi_send set data_notified=1, dvd_notified=1 where semid='{pcode}' and utdate_beg='{utdate}'")
         sleep(1)
         num_sent += 1
 
@@ -119,7 +119,7 @@ def dep_pi_email(instr, utdate):
         #get needed PI info for this program
         #NOTE: old method gets info from kpa_pi and koa_program.  This is getting from proposal API.
         semester, progid = semid.split('_')
-        pp, pp1, pp2, pp3 = getPropintData(utdate, semid)
+        pp, pp1, pp2, pp3 = get_propint_data(utdate, semid)
         email = getPIEmail(semid)
         if not email:
             log('ERROR: ???')
@@ -145,7 +145,7 @@ def dep_pi_email(instr, utdate):
         sleep(1)
 
 
-def getPropintData(utdate, semid):
+def get_propint_data(utdate, semid):
 
     ppdata = query("koa", f"select * from koa_ppp where utdate='{utdate}' and semid='{semid}'")
     if not ppdata:
@@ -215,7 +215,7 @@ def get_pi_send_msg(instr, semester, progid, pp, pp1, pp2, pp3):
     return msg
 
 
-def send_email(toEmail, fromEmail, subject, message, cc=None, bcc=None):
+def send_email(to_email, from_email, subject, message, cc=None, bcc=None):
     '''
     Sends email using the input parameters
     '''
@@ -225,8 +225,8 @@ def send_email(toEmail, fromEmail, subject, message, cc=None, bcc=None):
     # Construct email message
     msg = MIMEText(message)
     msg['Subject'] = subject
-    msg['To'] = toEmail
-    msg['From'] = fromEmail
+    msg['To'] = to_email
+    msg['From'] = from_email
     if cc: msg['Cc'] = cc
     if bcc: msg['Bcc'] = bcc
 
