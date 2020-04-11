@@ -1,24 +1,22 @@
 
 '''
 This code is called when a return response from IPAC is recieved notifying Keck that data has been 
-successfully ingested into KOA.  
+successfully ingested into KOA.  We can then send a notification email to the PI
+
+Adapted from:
+  koaserver:/kroot/archive/tpx/default/tpx_email.php
+  koaserver:/kroot/archive/bin/dep_pi_email.php
+  koaserver:/kroot/archive/bin/dep_pi_email_send.php
 
 For full night ingestion, this response will contain the date and instrument. 
-Given a date and instr, we need to email all programs that were scheduled on that instrument for that date.  
+We need to email all programs that were scheduled on that instrument for that date.  
 This is problematic for ToOs and Twilight b/c they are not on the schedule.  
-One solution would be to add instrument column to koapi_send.  Then we don't need to cross-reference the schedule.
+To solve this, we are adding an instrument column to koapi_send so we don't need to cross-reference the schedule.
 
-NOTE: The following koatpx vars are updated via IPAC receipt procmail before email code is called:
-
-system("/kroot/archive/bin/mysql_tpx_update $utdate $instrument metadata_time2 '$time'");
-system("/kroot/archive/bin/mysql_tpx_update $utdate $instrument tpx_stat DONE");
-system("/kroot/archive/bin/mysql_tpx_update $utdate $instrument tpx_time '$time'");
-if ($type == "nirc2" || $type == "osiris")
-{
-        system("/kroot/archive/bin/mysql_tpx_update $utdate $instrument lev1_stat DONE");
-        system("/kroot/archive/bin/mysql_tpx_update $utdate $instrument lev1_time '$time'");
-}
-
+# DONE: Add koapi_send.instr column
+# TODO: Update dep_dqa.py to pass instr to koa_api.updateKoapiSend
+# TODO: Update koa_api.updateKoapiSend to insert into new instrument col
+# TODO: (optional) Update koa_api.updateKoapiSend to forget about runs and insert a record for every night per program per instrument. 
 '''
 from datetime import datetime, timedelta
 import db_conn
@@ -26,97 +24,25 @@ import urllib.request as URL
 import time
 
 
-#-----------------------------------------------------------------------------------------------------------------
-# CURRENT METHOD (no koapi_send.instr column, considers runs):
-# Ported from koaserver:/kroot/archive/bin/dep_pi_email.php
-# NOTE: If we don't care about runs, and want to send a notification each day, nothing changes here.  We just put
-# more entries in koapi_send for each date.  See updateKoapiSend in koa_api.py 
-#-----------------------------------------------------------------------------------------------------------------
-def dep_pi_email_OLD(instr, utdate):
+def dep_pi_email(instr, utdate, level):
 
-    #Get yesterday date string
-    hstdate = get_delta_date(utdate, '-1 days')
-    hstdate = datetime.strptime(utdate, '%Y-%m-%d') - timedelta(1)
-    hstdate = hstdate.strftime("%Y-%m-%d")
+    #We are only dealing with level 0 for now
+    assert level == 0, "PI emails only sent for level 0 ingestion"
 
-    #Find all programs on this utdate that are are still needing notification sent
-    #NOTE: PIs will not get notified if there is a hiccup where we don't get the IPAC reciept that day.
-    rows = query("koa", f"select * from koapi_send where utdate_beg='{utdate}' and send_data=1 and data_notified=0")
-
-    #For each program, cross-reference it in the schedule (using hstdate of course)
-    #NOTE: If a program takes data that was not on the schedule, they will not get notified.
-    num_sent = 0
-    for row in rows:
-
-        #safe guard upper limit on how many notifications can go out
-        if num_sent > 3: 
-            continue
-
-        #check for matching sched prog
-        #NOTE: fixing bug here where check failed if program was scheduled twice in one night on same instr
-        pcode = row[semid]
-        progs = query("keckOperations", f"select * from telSchedule where Instrument like '%{instr}%' and Date='{hstdate}' and ProjCode like '%{pcode}%'")
-        if len(progs) == 0: 
-            continue
-
-        #check for a matching processed record from koa table
-        utdate_beg = row['utdate_beg']
-        koatpx = query("koa", f"select * from koatpx where utdate='{utdate_beg}' and instr='{instr}'")
-        if len(koatpx) == 0: 
-            continue
-
-        #check that metadata_time2 has a value
-        #TODO: NOTE: metadata_time2 is set by the root procmail script that calls this one
-        if not koatpx[0]['metadata_time2']:
-            continue
-
-        #gather info for this program from koa tables
-        info = query("koa", f"select pi.* from koa_pi as pi, koa_program as pr where pi.piID = pr.piID and pr.semid='{pcode}'")
-        if len(info) != 1:
-            continue
-
-        #send email
-        info = info[0]
-        dep_pi_email_send(utdate, instr, info[semid], 
-                          info[pi_lastname], info[pi_firstname], info[pi_email], 
-                          info[pi_username], info[pi_password])
-
-        #update koapi_send
-        query(f"update koapi_send set data_notified=1, dvd_notified=1 where semid='{pcode}' and utdate_beg='{utdate}'")
-        sleep(1)
-        num_sent += 1
-
-
-
-#-----------------------------------------------------------------------------------------------------------------
-# NEW METHOD (has koapi_send.instr column, does not consider runs):
-# TODO: Script that calls this needs to set metadata_time2, tpx_stat, and tpx_time
-# TODO: Add koapi_send.instr column
-# TODO: Update dep_dqa.py to pass instr to koa_api.updateKoapiSend
-# TODO: Update koa_api.updateKoapiSend to insert into new instrument col
-# TODO: (optional) Update koa_api.updateKoapiSend to forget about runs and insert a record for every night per program per instrument. 
-# TODO: Does all this work for ToOs and Twilight?
-#-----------------------------------------------------------------------------------------------------------------
-def dep_pi_email(instr, utdate):
-
-    db = db_conn.db_conn('config.live.ini')
-
-    #Get yesterday date string
-    hstdate = datetime.strptime(utdate, '%Y-%m-%d') - timedelta(1)
-    hstdate = hstdate.strftime("%Y-%m-%d")
+    #db object
+    db = db_conn.db_conn('config.live.ini', configKey='database')
 
     #Find all programs on this utdate and instr that are are still needing notification sent
     #NOTE: PIs will not get notified if there is a hiccup where we don't get the IPAC reciept that day.
     num_sent = 0
-#todo: change table name
+#todo: remove dev table name
     rows = db.query("koa", f"select * from koapi_send_DEV where utdate_beg='{utdate}' and instr='{instr}' and send_data=1 and data_notified=0")
     for row in rows:
-        print(row)
         semid = row['semid']
 
         #check for a matching koatpx processed record from koa table and that its metadata_time2 val is set
-        #TODO: NOTE: metadata_time2 is set by the root procmail script that calls this one
-        koatpx = db.query("koa", f"select * from koatpx where utdate='{utdate}' and instr='{instr}' and metadata_time2 is not null")
+        #NOTE: Old code looked at metadata_time2, but we are looking at tpx_stat now.
+        koatpx = db.query("koa", f"select * from koatpx where utdate='{utdate}' and instr='{instr}' and tpx_stat='DONE'")
         if len(koatpx) == 0: 
             print(f'ERROR: Could not find matching koatpx processed record for utdate {utdate} and instr {instr}')
             continue
@@ -124,22 +50,28 @@ def dep_pi_email(instr, utdate):
         #get needed PI info for this program
         #NOTE: old method gets info from kpa_pi and koa_program.  This is getting from proposal API.
         semester, progid = semid.split('_')
-        pp, pp1, pp2, pp3 = get_propint_data(utdate, semid)
+        pp, pp1, pp2, pp3 = get_propint_data(utdate, semid, instr)
         email = getPIEmail(semid)
         if not email:
             print(f'ERROR: Could not get PI info for {semid}')
             continue
 
         #send email
-        to = email
+        #to = email
+#todo: remove dev email
+        to = 'jriley@keck.hawaii.edu'
         frm = 'koaadmin@keck.hawaii.edu'
-        bcc = 'koaadmin@keck.hawaii.edu'
+        #bcc = 'koaadmin@keck.hawaii.edu'
+        bcc = ''
         subject = f"The archiving and future release of your {instr} data";
         msg = get_pi_send_msg(instr, semester, progid, pp, pp1, pp2, pp3)
-        send_email(to, frm, subject, msg, bcc=bcc)
+        try:
+            send_email(to, frm, subject, msg, bcc=bcc)
+        except Exception as e:
+            print(f'ERROR: could not send email: {str(e)}')
 
         #update koapi_send db table
-#todo: change table name
+#todo: remove dev table name
         res = db.query("koa", f"update koapi_send_DEV set data_notified=1, dvd_notified=1 where semid='{semid}' and utdate_beg='{utdate}'")
         if not res:
             print(f'ERROR: Could not update koapi_send for {semid}')
@@ -147,7 +79,7 @@ def dep_pi_email(instr, utdate):
 
         #safe guard upper limit on how many notifications can go out
         #NOTE: This used to be set at 2.  But since we will be adding ToOs and Twilight, this is getting bumped up.
-        #TODO: Remove sleep?
+#TODO: Remove sleep?
         num_sent += 1
         if num_sent > 9: 
             print(f'ERROR: Too many email notifications!')
@@ -155,21 +87,45 @@ def dep_pi_email(instr, utdate):
         time.sleep(1)
 
 
-def get_propint_data(utdate, semid):
+def get_propint_data(utdate, semid, instr):
 
-    db = db_conn.db_conn('config.live.ini')
-
+    #try koa_ppp first
+    db = db_conn.db_conn('config.live.ini', configKey='database')
     ppdata = db.query("koa", f"select * from koa_ppp where utdate='{utdate}' and semid='{semid}'", getOne=True)
+    if ppdata:
+        pp = ''
+        pp1 = ppdata['propint1']
+        pp2 = ppdata['propint2']
+        pp3 = ppdata['propint3']
+        if (pp1 == pp2 and pp2 == pp3) or instr != "HIRES":
+            pp = pp1
+        return pp, pp1, pp2, pp3
+
+    #else try proposals api
     if not ppdata:
-        return '', '', '', ''
-    print(ppdata)
-    pp = ''
-    pp1 = ppdata['propint1']
-    pp2 = ppdata['propint2']
-    pp3 = ppdata['propint3']
-    if (pp1 == pp2 and pp2 == pp3) or instr != "HIRES":
-        pp = pp1;
-    return pp, pp1, pp2, pp3
+        baseurl = 'https://www.keck.hawaii.edu/software/db_api/'
+        url = f'{baseurl}proposalsAPI.php?ktn={semid}&cmd=getApprovedPP'
+        try:
+            pp = URL.urlopen(url).read().decode('utf-8')
+            if pp:
+                return pp, pp, pp, pp
+        except Exception as e:
+            print(f'could not open url: {str(e)}')
+
+    #else give up
+    return '', '', '', ''
+
+
+def getPIEmail (semid):
+#TODO: use common function
+    result = None
+    baseurl = 'https://www.keck.hawaii.edu/software/db_api/'
+    url = f'{baseurl}proposalsAPI.php?ktn={semid}&cmd=getPIEmail'
+    try:
+        result = URL.urlopen(url).read().decode('utf-8')
+    except Exception as e:
+        print(f'ERROR: could not open url {url}: {str(e)}')
+    return result
 
 
 def get_pi_send_msg(instr, semester, progid, pp, pp1, pp2, pp3):
@@ -243,19 +199,6 @@ def send_email(to_email, from_email, subject, message, cc=None, bcc=None):
     if bcc: msg['Bcc'] = bcc
 
     # Send the email
-#todo
-    print('msg: ', msg)
-    # s = smtplib.SMTP('localhost')
-    # s.send_message(msg)
-    # s.quit()
-
-
-def getPIEmail (semid):
-    result = None
-    baseurl = 'https://www.keck.hawaii.edu/software/db_api/'
-    url = f'{baseurl}proposalsAPI.php?ktn={semid}&cmd=getPIEmail'
-    try:
-        result = URL.urlopen(url).read().decode('utf-8')
-    except Exception as e:
-        print(f'could not open url: {e}')
-    return result
+    s = smtplib.SMTP('localhost')
+    s.send_message(msg)
+    s.quit()
