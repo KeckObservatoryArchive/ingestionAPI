@@ -21,7 +21,9 @@ if ($type == "nirc2" || $type == "osiris")
 
 '''
 from datetime import datetime, timedelta
-
+import db_conn
+import urllib.request as URL
+import time
 
 
 #-----------------------------------------------------------------------------------------------------------------
@@ -97,23 +99,26 @@ def dep_pi_email_OLD(instr, utdate):
 #-----------------------------------------------------------------------------------------------------------------
 def dep_pi_email(instr, utdate):
 
+    db = db_conn.db_conn('config.live.ini')
+
     #Get yesterday date string
-    hstdate = get_delta_date(utdate, '-1 days')
     hstdate = datetime.strptime(utdate, '%Y-%m-%d') - timedelta(1)
     hstdate = hstdate.strftime("%Y-%m-%d")
 
     #Find all programs on this utdate and instr that are are still needing notification sent
     #NOTE: PIs will not get notified if there is a hiccup where we don't get the IPAC reciept that day.
     num_sent = 0
-    rows = query("koa", f"select * from koapi_send where utdate_beg='{utdate}' and instr='{instr}' and send_data=1 and data_notified=0")
+#todo: change table name
+    rows = db.query("koa", f"select * from koapi_send_DEV where utdate_beg='{utdate}' and instr='{instr}' and send_data=1 and data_notified=0")
     for row in rows:
+        print(row)
         semid = row['semid']
 
         #check for a matching koatpx processed record from koa table and that its metadata_time2 val is set
         #TODO: NOTE: metadata_time2 is set by the root procmail script that calls this one
-        koatpx = query("koa", f"select * from koatpx where utdate='{utdate}' and instr='{instr}' and metadata_time2 not null")
+        koatpx = db.query("koa", f"select * from koatpx where utdate='{utdate}' and instr='{instr}' and metadata_time2 is not null")
         if len(koatpx) == 0: 
-            log('ERROR: ???')
+            print(f'ERROR: Could not find matching koatpx processed record for utdate {utdate} and instr {instr}')
             continue
 
         #get needed PI info for this program
@@ -122,7 +127,7 @@ def dep_pi_email(instr, utdate):
         pp, pp1, pp2, pp3 = get_propint_data(utdate, semid)
         email = getPIEmail(semid)
         if not email:
-            log('ERROR: ???')
+            print(f'ERROR: Could not get PI info for {semid}')
             continue
 
         #send email
@@ -134,23 +139,30 @@ def dep_pi_email(instr, utdate):
         send_email(to, frm, subject, msg, bcc=bcc)
 
         #update koapi_send db table
-        query("koa", f"update koapi_send set data_notified=1, dvd_notified=1 where semid='{semid}' and utdate_beg='{utdate}'")
+#todo: change table name
+        res = db.query("koa", f"update koapi_send_DEV set data_notified=1, dvd_notified=1 where semid='{semid}' and utdate_beg='{utdate}'")
+        if not res:
+            print(f'ERROR: Could not update koapi_send for {semid}')
+            continue
 
         #safe guard upper limit on how many notifications can go out
         #NOTE: This used to be set at 2.  But since we will be adding ToOs and Twilight, this is getting bumped up.
+        #TODO: Remove sleep?
         num_sent += 1
         if num_sent > 9: 
-            log('ERROR: ???')
+            print(f'ERROR: Too many email notifications!')
             break
-        sleep(1)
+        time.sleep(1)
 
 
 def get_propint_data(utdate, semid):
 
-    ppdata = query("koa", f"select * from koa_ppp where utdate='{utdate}' and semid='{semid}'")
+    db = db_conn.db_conn('config.live.ini')
+
+    ppdata = db.query("koa", f"select * from koa_ppp where utdate='{utdate}' and semid='{semid}'", getOne=True)
     if not ppdata:
         return '', '', '', ''
-
+    print(ppdata)
     pp = ''
     pp1 = ppdata['propint1']
     pp2 = ppdata['propint2']
@@ -168,7 +180,7 @@ def get_pi_send_msg(instr, semester, progid, pp, pp1, pp2, pp3):
     msg += f"Program: {progid}\n\n";
     msg += f"have been archived.  The proprietary period for your program, as approved by\n";
     msg += f"your Selecting Official, is\n\n";
-    if pp || instr != "HIRES":
+    if pp or instr != "HIRES":
         msg += f"{pp} months\n\n";
     else:
         msg += f"CCD1 = {pp1} months\n";
@@ -231,6 +243,19 @@ def send_email(to_email, from_email, subject, message, cc=None, bcc=None):
     if bcc: msg['Bcc'] = bcc
 
     # Send the email
-    s = smtplib.SMTP('localhost')
-    s.send_message(msg)
-    s.quit()
+#todo
+    print('msg: ', msg)
+    # s = smtplib.SMTP('localhost')
+    # s.send_message(msg)
+    # s.quit()
+
+
+def getPIEmail (semid):
+    result = None
+    baseurl = 'https://www.keck.hawaii.edu/software/db_api/'
+    url = f'{baseurl}proposalsAPI.php?ktn={semid}&cmd=getPIEmail'
+    try:
+        result = URL.urlopen(url).read().decode('utf-8')
+    except Exception as e:
+        print(f'could not open url: {e}')
+    return result
