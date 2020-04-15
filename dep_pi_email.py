@@ -19,7 +19,6 @@ import urllib.request as URL
 import time
 
 
-#todo: check that date is not too old
 #todo: cross check telschedule if not ToO
 
 def dep_pi_email(instr, utdate, level):
@@ -30,8 +29,8 @@ def dep_pi_email(instr, utdate, level):
     #check proc date is not too old
     utdatets = datetime.strptime(utdate, '%Y-%m-%d')
     diff = datetime.now() - utdatets
-    assert diff.days < 7, "ERROR: Processing date is more than 7 days ago."
-    
+    #assert diff.days < 7, "ERROR: Processing date is more than 7 days ago."
+
     #db object
     db = db_conn.db_conn('config.live.ini', configKey='database')
 
@@ -42,6 +41,24 @@ def dep_pi_email(instr, utdate, level):
     rows = db.query("koa", f"select * from koapi_send_DEV where utdate_beg='{utdate}' and instr='{instr}' and send_data=1 and data_notified=0")
     for row in rows:
         semid = row['semid']
+        semester, progid = semid.split('_')
+
+        #get program info
+        query = f"select pi.*, pr.type from koa_pi as pi, koa_program as pr where pi.piID=pr.piID and pr.semid='{semid}'"
+        prog_info = db.query("koa", query, getOne=True)
+        if not prog_info:
+            print(f'ERROR: Could not find program information for {semid}')
+            continue
+
+        #Ensure that it was scheduled for this day (does not apply to ToOs)
+        print(prog_info)
+        if prog_info['type'] != 'ToO':
+            yester = get_delta_date(utdate, -1)
+            query = f"select * from telSchedule where Instrument like '%{instr}%' and Date='{yester}' and ProjCode like '%{progid}%'"
+            sched = db.query("keckOperations", query, getOne=True)
+            if not sched:
+                print(f'ERROR: Program {semid} was not scheduled on HST date {yester}')
+                continue
 
         #check for a matching koatpx processed record from koa table and that its metadata_time2 val is set
         #NOTE: Old code looked at metadata_time2, but we are looking at tpx_stat now.
@@ -52,7 +69,6 @@ def dep_pi_email(instr, utdate, level):
 
         #get needed PI info for this program
         #NOTE: old method gets info from kpa_pi and koa_program.  This is getting from proposal API.
-        semester, progid = semid.split('_')
         pp, pp1, pp2, pp3 = get_propint_data(utdate, semid, instr)
         email = getPIEmail(semid)
         if not email:
@@ -88,6 +104,12 @@ def dep_pi_email(instr, utdate, level):
             print(f'ERROR: Too many email notifications!')
             break
         time.sleep(1)
+
+
+def get_delta_date(datestr, delta):
+    date = datetime.strptime(datestr, "%Y-%m-%d")
+    newdate = date + timedelta(days=delta)
+    return datetime.strftime(newdate, "%Y-%m-%d")        
 
 
 def get_propint_data(utdate, semid, instr):
