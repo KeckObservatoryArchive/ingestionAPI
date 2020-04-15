@@ -12,11 +12,6 @@ For full night ingestion, this response will contain the date and instrument.
 We need to email all programs that were scheduled on that instrument for that date.  
 This is problematic for ToOs and Twilight b/c they are not on the schedule.  
 To solve this, we are adding an instrument column to koapi_send so we don't need to cross-reference the schedule.
-
-# DONE: Add koapi_send.instr column
-# TODO: Update dep_dqa.py to pass instr to koa_api.updateKoapiSend
-# TODO: Update koa_api.updateKoapiSend to insert into new instrument col
-# TODO: (optional) Update koa_api.updateKoapiSend to forget about runs and insert a record for every night per program per instrument. 
 '''
 from datetime import datetime, timedelta
 import db_conn
@@ -24,11 +19,19 @@ import urllib.request as URL
 import time
 
 
+#todo: check that date is not too old
+#todo: cross check telschedule if not ToO
+
 def dep_pi_email(instr, utdate, level):
 
     #We are only dealing with level 0 for now
-    assert level == 0, "PI emails only sent for level 0 ingestion"
+    assert level == 0, "ERROR: PI emails only sent for level 0 ingestion"
 
+    #check proc date is not too old
+    utdatets = datetime.strptime(utdate, '%Y-%m-%d')
+    diff = datetime.now() - utdatets
+    assert diff.days < 7, "ERROR: Processing date is more than 7 days ago."
+    
     #db object
     db = db_conn.db_conn('config.live.ini', configKey='database')
 
@@ -58,7 +61,7 @@ def dep_pi_email(instr, utdate, level):
 
         #send email
         #to = email
-#todo: remove dev email
+#todo: remove dev email and add bcc
         to = 'jriley@keck.hawaii.edu'
         frm = 'koaadmin@keck.hawaii.edu'
         #bcc = 'koaadmin@keck.hawaii.edu'
