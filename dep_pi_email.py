@@ -9,17 +9,14 @@ Adapted from:
   koaserver:/kroot/archive/bin/dep_pi_email_send.php
 
 For full night ingestion, this response will contain the date and instrument. 
-We need to email all programs that were scheduled on that instrument for that date.  
-This is problematic for ToOs and Twilight b/c they are not on the schedule.  
-To solve this, we are adding an instrument column to koapi_send so we don't need to cross-reference the schedule.
+We need to email all programs that were marked in koapi_send table by DQA for this date as needing notificaiton.
+For non-ToO programs, we will cross check with the tel schedule.
 '''
 from datetime import datetime, timedelta
 import db_conn
 import urllib.request as URL
 import time
 
-
-#todo: cross check telschedule if not ToO
 
 def dep_pi_email(instr, utdate, level):
 
