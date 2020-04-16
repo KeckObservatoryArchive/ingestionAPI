@@ -4,9 +4,12 @@ import sys
 import confparse
 import urllib.request as URL
 from dep_pi_email import dep_pi_email
+import logging
 
 sys.path.append('/kroot/archive/common/default')
 from send_email import send_email
+
+log = logging.getLogger('ingestapi')
 
 
 class Instrument:
@@ -99,15 +102,19 @@ class Instrument:
                      self.instr,
                      '"')
             try:
-                if self.dev: print("DEV: NO QUERY: ", ''.join(query))
+                if self.dev: log.debug(f"DEV: NO QUERY: {''.join(query)}")
                 else: test = self.db.query('koa', query)
             except Exception as e:
-                print('could not complete the query')
+                log.error(f"Could not complete the query: {''.join(query)}")
 
             if self.status == 'ERROR':
                 self.sendEmail('lev0 error', self.myDict)
             elif self.status == 'DONE':
-                dep_pi_email(self.instr, self.obsDate, 0)
+                log.info('test123')
+                res, errors = dep_pi_email(self.instr, self.obsDate, 0, self.dev)
+                if not res:
+                    self.myDict['dep_pi_email_errors'] = errors
+                    self.sendEmail('lev0 error', self.myDict)
 
         else:
             self.myDict['APIStatus'] = 'INCOMPLETE'
@@ -178,7 +185,7 @@ class Instrument:
                 pass
 #                    test = self.db.query('koa', query)
             except Exception as e:
-                print('could not complete the query')
+                log.error(f"Could not complete the query{''.join(query)}")
 
             if self.status == 'ERROR':
                 self.sendEmail(subject, self.myDict)
@@ -227,11 +234,11 @@ class Instrument:
     def sendEmail(self, subject, myDict):
         '''
         '''
-
         body = ''
         for key,value in myDict.items():
             body = f"{body}\n{key} -- {value}"
         send_email(self.config.get_emailto(), self.config.get_emailfrom(), subject, body)
+        log.debug(f"{subject}\n{body}")
 
     def getPIEmail (self, semid):
         result = None
@@ -239,6 +246,6 @@ class Instrument:
         try:
             result = URL.urlopen(url).read().decode('utf-8')
         except Exception as e:
-            print(f'could not open url: {e}')
+            log.error(f"could not open url {url}: {e}")
         return result
 

@@ -16,26 +16,30 @@ from datetime import datetime, timedelta
 import db_conn
 import urllib.request as URL
 import time
+import json
 
 
-def dep_pi_email(instr, utdate, level):
+def dep_pi_email(instr, utdate, level, dev=False):
 
     #We are only dealing with level 0 for now
-    assert level == 0, "ERROR: PI emails only sent for level 0 ingestion"
+    if level > 0:
+        return False, "ERROR: PI emails only sent for level 0 ingestion"
 
     #check proc date is not too old
     utdatets = datetime.strptime(utdate, '%Y-%m-%d')
     diff = datetime.now() - utdatets
-    assert diff.days < 7, "ERROR: Processing date is more than 7 days ago."
+    if diff.days > 7:
+       return False, "ERROR: Processing date is more than 7 days ago"
 
     #db object
-    db = db_conn.db_conn('config.live.ini', configKey='database')
+    config_key = 'database_dev' if dev else 'database'
+    db = db_conn.db_conn('config.live.ini', configKey=config_key)
 
     #Find all programs on this utdate and instr that are are still needing notification sent
     #NOTE: PIs will not get notified if there is a hiccup where we don't get the IPAC reciept that day.
+    errors = []
     num_sent = 0
-#todo: remove dev table name
-    rows = db.query("koa", f"select * from koapi_send_DEV where utdate_beg='{utdate}' and instr='{instr}' and send_data=1 and data_notified=0")
+    rows = db.query("koa", f"select * from koapi_send where utdate_beg='{utdate}' and instr='{instr}' and send_data=1 and data_notified=0")
     for row in rows:
         semid = row['semid']
         semester, progid = semid.split('_')
@@ -44,24 +48,23 @@ def dep_pi_email(instr, utdate, level):
         query = f"select pi.*, pr.type from koa_pi as pi, koa_program as pr where pi.piID=pr.piID and pr.semid='{semid}'"
         prog_info = db.query("koa", query, getOne=True)
         if not prog_info:
-            print(f'ERROR: Could not find program information for {semid}')
+            errors.append(f'ERROR: Could not find program information for {semid}')
             continue
 
         #Ensure that it was scheduled for this day (does not apply to ToOs)
-        print(prog_info)
         if prog_info['type'] != 'ToO':
             yester = get_delta_date(utdate, -1)
             query = f"select * from telSchedule where Instrument like '%{instr}%' and Date='{yester}' and ProjCode like '%{progid}%'"
             sched = db.query("keckOperations", query, getOne=True)
             if not sched:
-                print(f'ERROR: Program {semid} was not scheduled on HST date {yester}')
+                errors.append(f'ERROR: Program {semid} was not scheduled on HST date {yester}')
                 continue
 
         #check for a matching koatpx processed record from koa table and that its metadata_time2 val is set
         #NOTE: Old code looked at metadata_time2, but we are looking at tpx_stat now.
         koatpx = db.query("koa", f"select * from koatpx where utdate='{utdate}' and instr='{instr}' and tpx_stat='DONE'")
         if len(koatpx) == 0: 
-            print(f'ERROR: Could not find matching koatpx processed record for utdate {utdate} and instr {instr}')
+            errors.append(f'ERROR: Could not find matching koatpx processed record for utdate {utdate} and instr {instr}')
             continue
 
         #get needed PI info for this program
@@ -69,38 +72,45 @@ def dep_pi_email(instr, utdate, level):
         pp, pp1, pp2, pp3 = get_propint_data(utdate, semid, instr)
         email = getPIEmail(semid)
         if not email:
-            print(f'ERROR: Could not get PI info for {semid}')
+            errors.append(f'ERROR: Could not get PI info for {semid}')
             continue
 
         #send email
-        #to = email
-#todo: remove dev email and add bcc
-        to = 'jriley@keck.hawaii.edu'
+        to = email
         frm = 'koaadmin@keck.hawaii.edu'
-        #bcc = 'koaadmin@keck.hawaii.edu'
-        bcc = ''
+        bcc = 'koaadmin@keck.hawaii.edu'
         subject = f"The archiving and future release of your {instr} data";
+        if dev: 
+            to = 'jriley@keck.hawaii.edu'
+            bcc = ''
+            subject = '[TEST] ' + subject
         msg = get_pi_send_msg(instr, semester, progid, pp, pp1, pp2, pp3)
         try:
-            send_email(to, frm, subject, msg, bcc=bcc)
+           send_email(to, frm, subject, msg, bcc=bcc)
         except Exception as e:
-            print(f'ERROR: could not send email: {str(e)}')
+            errors.append(f'ERROR: could not send email: {str(e)}')
 
         #update koapi_send db table
-#todo: remove dev table name
-        res = db.query("koa", f"update koapi_send_DEV set data_notified=1, dvd_notified=1 where semid='{semid}' and utdate_beg='{utdate}'")
-        if not res:
-            print(f'ERROR: Could not update koapi_send for {semid}')
-            continue
+        if not dev:
+            query = f"update koapi_send set data_notified=1, dvd_notified=1 where semid='{semid}' and utdate_beg='{utdate}'"
+            res = db.query("koa", query)
+            if not res:
+                errors.append(f'ERROR: Could not update koapi_send for {semid}')
+                continue
 
         #safe guard upper limit on how many notifications can go out
         #NOTE: This used to be set at 2.  But since we will be adding ToOs and Twilight, this is getting bumped up.
-#TODO: Remove sleep?
         num_sent += 1
         if num_sent > 9: 
-            print(f'ERROR: Too many email notifications!')
+            errors.append(f'ERROR: Too many email notifications!')
             break
         time.sleep(1)
+
+    #result
+    if len(errors) > 0:
+        return False, json.dumps(errors)
+    else:
+        return True, None
 
 
 def get_delta_date(datestr, delta):
@@ -224,3 +234,4 @@ def send_email(to_email, from_email, subject, message, cc=None, bcc=None):
     s = smtplib.SMTP('localhost')
     s.send_message(msg)
     s.quit()
+
