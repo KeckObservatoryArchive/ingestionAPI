@@ -100,7 +100,7 @@ class Instrument:
                      '"')
             try:
                 if self.dev: print("DEV: NO QUERY: ", ''.join(query))
-                else: test = self.db.query(query)
+                else: test = self.db.query('koa', query)
             except Exception as e:
                 print('could not complete the query')
 
@@ -128,7 +128,7 @@ class Instrument:
         #     ', lev1_time=', self.currentTime, ' WHERE koaid=', self.koaid,])
 #        if self.status not in ['DONE','ERROR']:
 #            self.status == 'NA'
-#        self.db.query(query)
+#        self.db.query('koa', query)
         return self.statusType + ' ingestion was ' + self.status
 
     def lev2Status(self):
@@ -144,7 +144,7 @@ class Instrument:
 #        #     ', lev2_time=', self.currentTime[:-3], ' WHERE koaid=', self.koaid,])
 #        if self.status not in ['DONE','ERROR']:
 #            self.status == 'NA'
-#        self.db.query(query)
+#        self.db.query('koa', query)
         return self.statusType + ' ingestion was ' + self.status
 
     def trsStatus(self):
@@ -176,7 +176,7 @@ class Instrument:
 #        #     ', trs_time=', self.currentTime, ' WHERE koaid=', self.koaid,])
             try:
                 pass
-#                    test = self.db.query(query)
+#                    test = self.db.query('koa', query)
             except Exception as e:
                 print('could not complete the query')
 
@@ -202,7 +202,7 @@ class Instrument:
 #        #     ', ingest_time=', self.currentTime, ' WHERE koaid=', self.koaid])
 #        if self.status not in ['DONE','ERROR']:
 #            self.status == 'NA'
-#        self.db.query(query)
+#        self.db.query('koa', query)
         return self.statusType + ' ingestion was ' + self.status
 
     def metaStatus(self):
@@ -218,7 +218,7 @@ class Instrument:
         #     ', psfr_time=', self.currentTime, ' WHERE koaid=', self.koaid,])
 #        if self.status not in ['DONE','ERROR']:
 #            self.status == 'NA'
-#        self.db.query(query)
+#        self.db.query('koa', query)
         return self.statusType + ' ingestion was ' + self.status
 
     def weatherStatus(self):

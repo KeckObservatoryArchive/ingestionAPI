@@ -60,7 +60,7 @@ def tpx_gui(dev=False):
                        'End Time','Time Lost','Notes']
 
     #do query
-    result = db.query(query)
+    result = db.query('koa', query)
     #if query does not exist, do not make data table, render template
     if not result:
         return render_template('tpx_gui.html',data=result,page_header=page_header,
