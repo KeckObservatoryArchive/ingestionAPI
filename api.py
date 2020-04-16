@@ -12,6 +12,8 @@ import esi
 import mosfire
 import weather
 import json
+import argparse
+import logging
 
 from flask import Flask, render_template, request, redirect, url_for, session
 
@@ -32,6 +34,12 @@ INSTRUMENTS = {
         'weather':weather.Weather
         }
 
+
+@app.route("/")
+def index():
+    return "Index"
+
+
 @app.route('/tpx_status/', methods=('GET','POST'))
 def tpx_status():
     '''
@@ -47,6 +55,7 @@ def tpx_status():
     status: the status of the ingestion from IPAC
     @type status: string
     '''
+
     # get the arguments passed as a get or post
     args = request.args
     #print(args)
@@ -61,7 +70,7 @@ def tpx_status():
 
     # Create the instrument subclass object based on instr 
     try:
-        instrumentStatus = INSTRUMENTS[instr](instr, date, statusType, status, statusMessage)
+        instrumentStatus = INSTRUMENTS[instr](instr, date, statusType, status, statusMessage, debug)
     except Exception as e:
         print('error creating the object: ', e)
         response = {'APIStatus':'ERROR', 'Message':'error creating the object'}
@@ -77,8 +86,58 @@ def tpx_status():
             print(response)
     return json.dumps(response)
 
+
+def create_logger(name, logdir):
+    try:
+        #Create logger object
+        logger = logging.getLogger(name)
+        logger.setLevel(logging.DEBUG)
+
+        #file handler (full debug logging)
+        logfile = f'{logdir}/{name}.log'
+        handler = logging.FileHandler(logfile)
+        handler.setLevel(logging.DEBUG)
+        handler.suffix = "%Y%m%d"
+        logger.addHandler(handler)
+
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s: %(message)s')
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+
+        #stream/console handler (info+ only)
+        handler = logging.StreamHandler()
+        handler.setLevel(logging.INFO)
+        formatter = logging.Formatter(' %(levelname)8s: %(message)s')
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+
+    except Exception as error:
+        print (f"ERROR: Unable to create logger '{name}'.\nReason: {str(error)}")
+
+
+
 if __name__ == '__main__':
+
+    # define arg parser
+    parser = argparse.ArgumentParser(description="Start KOA Ingestion API.")
+    parser.add_argument("port", type=int, help="Flask server port.")
+    parser.add_argument("mode", type=str, choices=['dev', 'release'],
+                        help="Determines database access and flask debugging mode.")
+
+    #get args and define inputs
+    args = parser.parse_args()
+    port = args.port
+    mode = args.mode
+    debug = False if mode == 'release' else True
+
     host = '0.0.0.0'
-    port = 50202
-    debug = True
-    app.run(host=host,port=port,debug=debug)
+
+    #create logger first
+    logdir = '/tmp' if debug else 'home/koaadmin/log'
+    create_logger('ingestapi', logdir)
+    log = logging.getLogger('ingestapi')
+
+    #run flask server
+    log.info(f"Starting KOA ingestion API:\nPORT = {port}\nMODE = {mode}")
+    app.run(host=host, port=port, debug=debug)
+    log.info("Stopping KOA ingestion API.\n")

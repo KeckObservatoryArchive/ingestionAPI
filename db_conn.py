@@ -111,7 +111,7 @@ class db_conn(object):
         Returns false on any exception error.  Opens and closes a new connection each time.
         '''
 
-        print (query)
+        query = ''.join(query)
         result = False
 
         try:

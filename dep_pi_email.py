@@ -26,7 +26,7 @@ def dep_pi_email(instr, utdate, level):
     #check proc date is not too old
     utdatets = datetime.strptime(utdate, '%Y-%m-%d')
     diff = datetime.now() - utdatets
-    #assert diff.days < 7, "ERROR: Processing date is more than 7 days ago."
+    assert diff.days < 7, "ERROR: Processing date is more than 7 days ago."
 
     #db object
     db = db_conn.db_conn('config.live.ini', configKey='database')

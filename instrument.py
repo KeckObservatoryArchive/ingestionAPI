@@ -3,9 +3,11 @@ from datetime import datetime as DT
 import sys
 import confparse
 import urllib.request as URL
+from dep_pi_email import dep_pi_email
 
 sys.path.append('/kroot/archive/common/default')
 from send_email import send_email
+
 
 class Instrument:
     '''
@@ -34,13 +36,14 @@ class Instrument:
     psfrStatus(): API call to report the status of PSFR files
     weatherStatus(): API call to report the status of weather files
     '''
-    def __init__(self, date, statusType, status, statusMessage='NULL'):
+    def __init__(self, date, statusType, status, statusMessage='NULL', dev=False):
         self.obsDate = date
         self.currentDate = DT.strftime(DT.utcnow(), '%Y-%m-%d')
         self.currentTime = DT.strftime(DT.utcnow(), '%Y%m%d %H:%M:%S')
         self.statusType = statusType
         self.status = status
         self.statusMessage = statusMessage
+        self.dev = dev
         self.datadir = ''
         self.stagedir = ''
         self.instr = ''
@@ -72,14 +75,16 @@ class Instrument:
 
         self.config = confparse.ConfigParser(None, None, 'config.live.ini')
 
+        #db conn object (toggle for dev or release)
+        config_key = 'database_dev' if self.dev else 'database'
+        self.db = DBC.db_conn('config.live.ini', configKey=config_key)
+
     def lev0Status(self):
         '''
         API command to update the status of the TPX transfers
         '''
 
         ingestTime = DT.utcnow().strftime('%Y%m%d %H:%M')
-
-        subject = 'lev0 error'
 
         # Check to see what the status from IPAC was
         if self.status in ['DONE','ERROR']:
@@ -93,22 +98,20 @@ class Instrument:
                      '" and instr="',
                      self.instr,
                      '"')
-
             try:
-                db = DBC.db_conn("mysql","koaSol",test=False)
+                if self.dev: print("DEV: NO QUERY: ", ''.join(query))
+                else: test = self.db.query(query)
             except Exception as e:
-                print('Error setting up the connection object: ', e)
-            else:
-                try:
-                    test = db.do_query(query)
-                except Exception as e:
-                    print('could not complete the query')
+                print('could not complete the query')
 
             if self.status == 'ERROR':
-                self.sendEmail(subject, self.myDict)
+                self.sendEmail('lev0 error', self.myDict)
+            elif self.status == 'DONE':
+                dep_pi_email(self.instr, self.obsDate, 0)
+
         else:
             self.myDict['APIStatus'] = 'INCOMPLETE'
-            self.sendEmail(subject, self.myDict)
+            self.sendEmail('lev0 error', self.myDict)
 
         return self.myDict
 
@@ -126,7 +129,7 @@ class Instrument:
 #        db = DBC.db_conn()
 #        if self.status not in ['DONE','ERROR']:
 #            self.status == 'NA'
-#        db.do_query(query)
+#        self.db.query(query)
         return self.statusType + ' ingestion was ' + self.status
 
     def lev2Status(self):
@@ -143,7 +146,7 @@ class Instrument:
 #        db = DBC.db_conn()
 #        if self.status not in ['DONE','ERROR']:
 #            self.status == 'NA'
-#        db.do_query(query)
+#        self.db.query(query)
         return self.statusType + ' ingestion was ' + self.status
 
     def trsStatus(self):
@@ -180,7 +183,7 @@ class Instrument:
             else:
                 try:
                     pass
-#                    test = db.do_query(query)
+#                    test = self.db.query(query)
                 except Exception as e:
                     print('could not complete the query')
 
@@ -207,7 +210,7 @@ class Instrument:
 #        db = DBC.db_conn()
 #        if self.status not in ['DONE','ERROR']:
 #            self.status == 'NA'
-#        db.do_query(query)
+#        self.db.query(query)
         return self.statusType + ' ingestion was ' + self.status
 
     def metaStatus(self):
@@ -224,7 +227,7 @@ class Instrument:
 #        db = DBC.db_conn()
 #        if self.status not in ['DONE','ERROR']:
 #            self.status == 'NA'
-#        db.do_query(query)
+#        self.db.query(query)
         return self.statusType + ' ingestion was ' + self.status
 
     def weatherStatus(self):
