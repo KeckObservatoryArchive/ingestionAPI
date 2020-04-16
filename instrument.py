@@ -126,7 +126,6 @@ class Instrument:
         # Future query for file-by-file ingestion
         # query = ''.join(['UPDATE koatpx SET lev1_stat=', self.status,
         #     ', lev1_time=', self.currentTime, ' WHERE koaid=', self.koaid,])
-#        db = DBC.db_conn()
 #        if self.status not in ['DONE','ERROR']:
 #            self.status == 'NA'
 #        self.db.query(query)
@@ -143,7 +142,6 @@ class Instrument:
 #        # Future query for file-by-file ingestion
 #        # query = ''.join(['UPDATE koatpx SET lev2_stat=', self.status,
 #        #     ', lev2_time=', self.currentTime[:-3], ' WHERE koaid=', self.koaid,])
-#        db = DBC.db_conn()
 #        if self.status not in ['DONE','ERROR']:
 #            self.status == 'NA'
 #        self.db.query(query)
@@ -177,15 +175,10 @@ class Instrument:
 #        # query = ''.join(['UPDATE koatpx SET trs_stat=', self.status,
 #        #     ', trs_time=', self.currentTime, ' WHERE koaid=', self.koaid,])
             try:
-                db = DBC.db_conn("mysql","koa",test=False)
-            except Exception as e:
-                print('Error setting up the connection object: ', e)
-            else:
-                try:
-                    pass
+                pass
 #                    test = self.db.query(query)
-                except Exception as e:
-                    print('could not complete the query')
+            except Exception as e:
+                print('could not complete the query')
 
             if self.status == 'ERROR':
                 self.sendEmail(subject, self.myDict)
@@ -207,7 +200,6 @@ class Instrument:
 #        # Future query for file-by-file ingestion
 #        # query = ''.join(['UPDATE psfr SET ingest_stat=', self.status,
 #        #     ', ingest_time=', self.currentTime, ' WHERE koaid=', self.koaid])
-#        db = DBC.db_conn()
 #        if self.status not in ['DONE','ERROR']:
 #            self.status == 'NA'
 #        self.db.query(query)
@@ -224,7 +216,6 @@ class Instrument:
         # Future query for file-by-file ingestion
         # query = ''.join(['UPDATE koatpx SET psfr_stat=', self.status,
         #     ', psfr_time=', self.currentTime, ' WHERE koaid=', self.koaid,])
-#        db = DBC.db_conn()
 #        if self.status not in ['DONE','ERROR']:
 #            self.status == 'NA'
 #        self.db.query(query)
