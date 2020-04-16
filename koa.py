@@ -70,7 +70,7 @@ if __name__ == '__main__':
     host = '0.0.0.0'
 
     #create logger first
-    logdir = '/tmp' if debug else 'home/koaadmin/log'
+    logdir = '/tmp' if debug else '/home/koaadmin/log'
     create_logger('tpxgui', logdir)
     log = logging.getLogger('tpxgui')
 
