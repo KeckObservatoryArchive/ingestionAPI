@@ -10,8 +10,13 @@ import osiris
 import esi
 import mosfire
 import weather
+import db_conn
 
 from flask import Flask, render_template, request, redirect, url_for, session
+
+import logging
+log = logging.getLogger('koaapi')
+
 
 # Create a dictionare of the instrument Constructors
 INSTRUMENTS = {
@@ -28,7 +33,9 @@ INSTRUMENTS = {
         'weather':weather.Weather
         }
 
-def tpx_status():
+
+@app.route('/tpx_status/', methods=('GET','POST'))
+def tpx_status(dev=False):
     '''
     Method to update the transfer status of koa data
 
@@ -44,31 +51,28 @@ def tpx_status():
     '''
     # get the arguments passed as a get or post
     args = request.args
-    print(args)
-    instr = args['instr']
+    instr = args['instr'].lower()
     date = args['date']
     statusType = args['statusType']
     status = args['status']
     statusMessage = args.get('statusMessage', 'NULL')
-    print(statusMessage)
     response = ''
 
     # Create the instrument subclass object based on instr 
     try:
-        instrumentStatus = INSTRUMENTS[instr](instr, date, statusType, status, statusMessage)
+        instrumentStatus = INSTRUMENTS[instr](instr, date, statusType, status, statusMessage, dev)
     except Exception as e:
-        print(e)
-        print('error creating the object')
-        response = 'error creating the object'
+        log.error('error creating the object: ', e)
+        response = {'APIStatus':'ERROR', 'Message':'error creating the object'}
     else:
         # execute the status function based on statusType
         try:
+            instrumentStatus.myDict['Instrument'] = instrumentStatus.instr
             response = instrumentStatus.types[instrumentStatus.statusType]()
         except Exception as e:
-            print(e)
-            print('error executing the status type')
-            response = 'error executing the status type'
+            log.error('error executing the status type: ', e)
+            response = {'APIStatus':'ERROR', 'Message':'error executing the status type'}
         else:
             print(response)
-    return response
+    return json.dumps(response)
 

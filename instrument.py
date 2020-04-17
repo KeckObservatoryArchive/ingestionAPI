@@ -9,7 +9,7 @@ import logging
 sys.path.append('/kroot/archive/common/default')
 from send_email import send_email
 
-log = logging.getLogger('ingestapi')
+log = logging.getLogger('koaapi')
 
 
 class Instrument:

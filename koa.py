@@ -5,26 +5,32 @@ import argparse
 import logging
 
 
+#init flask app
 app = Flask(__name__)
-
-def get_resource_as_string(name, charset='utf-8'):
-    with app.open_resource(name) as f:
-        return f.read().decode(charset)
-
 app.jinja_env.globals['get_resource_as_string'] = get_resource_as_string
-
 app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
 
-#establish tpxgui route
+
+#--------------------------------------------------------------------------------
+# establish routes
+#--------------------------------------------------------------------------------
 @app.route('/tpxgui/',methods=['POST','GET'])
 def tpxgui():
-    log.info('tpxgui: ' + request.url)
+    log.info('tpxgui: ' + request.args)
     return tpx_gui(dev=debug)
 
 @app.route('/tpx_status/',methods=['POST','GET'])
 def tpx_status():
-    return tpx_status()
+    log.info('tpx_status: ' + request.args)
+    return tpx_status(dev=debug)
 
+
+#--------------------------------------------------------------------------------
+# helper utils
+#--------------------------------------------------------------------------------
+def get_resource_as_string(name, charset='utf-8'):
+    with app.open_resource(name) as f:
+        return f.read().decode(charset)
 
 def create_logger(name, logdir):
     try:
@@ -54,11 +60,13 @@ def create_logger(name, logdir):
         print (f"ERROR: Unable to create logger '{name}' in dir {logfile}.\nReason: {str(error)}")
 
 
-
+#--------------------------------------------------------------------------------
+# main command line entry
+#--------------------------------------------------------------------------------
 if __name__ == '__main__':
 
     # define arg parser
-    parser = argparse.ArgumentParser(description="Start KOA Ingestion API.")
+    parser = argparse.ArgumentParser(description="Start KOA API.")
     parser.add_argument("port", type=int, help="Flask server port.")
     parser.add_argument("--mode", type=str, choices=['dev', 'release'], default='release',
                         help="Determines database access and flask debugging mode.")
@@ -72,10 +80,10 @@ if __name__ == '__main__':
 
     #create logger first
     logdir = '/tmp' if debug else '/log'
-    create_logger('tpxgui', logdir)
-    log = logging.getLogger('tpxgui')
+    create_logger('koaapi', logdir)
+    log = logging.getLogger('koaapi')
 
     #run flask server
-    log.info(f"Starting KOA TPX GUI:\nPORT = {port}\nMODE = {mode}")
+    log.info(f"Starting KOA API:\nPORT = {port}\nMODE = {mode}")
     app.run(host=host, port=port, debug=debug)
-    log.info("Stopping KOA TPX GUI.\n")
+    log.info("Stopping KOA API.\n")
