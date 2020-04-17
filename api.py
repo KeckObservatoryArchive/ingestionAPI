@@ -35,11 +35,6 @@ INSTRUMENTS = {
         }
 
 
-@app.route("/")
-def index():
-    return "Index"
-
-
 @app.route('/tpx_status/', methods=('GET','POST'))
 def tpx_status():
     '''
@@ -57,14 +52,13 @@ def tpx_status():
     '''
 
     # get the arguments passed as a get or post
+    log.info(request.args)
     args = request.args
-    #print(args)
     instr = args['instr'].lower()
     date = args['date']
     statusType = args['statusType']
     status = args['status']
     statusMessage = args.get('statusMessage', 'NULL')
-    #print(statusMessage)
     response = ''
     #print('instr: ', instr, '\ndate: ', date, '\nstatusType: ', statusType, '\nstatus: ', status)
 
@@ -121,7 +115,7 @@ if __name__ == '__main__':
     # define arg parser
     parser = argparse.ArgumentParser(description="Start KOA Ingestion API.")
     parser.add_argument("port", type=int, help="Flask server port.")
-    parser.add_argument("mode", type=str, choices=['dev', 'release'],
+    parser.add_argument("--mode", type=str, choices=['dev', 'release'], default='release',
                         help="Determines database access and flask debugging mode.")
 
     #get args and define inputs
@@ -133,7 +127,7 @@ if __name__ == '__main__':
     host = '0.0.0.0'
 
     #create logger first
-    logdir = '/tmp' if debug else '/home/koaadmin/log'
+    logdir = '/tmp' if debug else '/log'
     create_logger('ingestapi', logdir)
     log = logging.getLogger('ingestapi')
 

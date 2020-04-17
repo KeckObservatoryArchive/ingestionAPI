@@ -110,7 +110,6 @@ class Instrument:
             if self.status == 'ERROR':
                 self.sendEmail('lev0 error', self.myDict)
             elif self.status == 'DONE':
-                log.info('test123')
                 res, errors = dep_pi_email(self.instr, self.obsDate, 0, self.dev)
                 if not res:
                     self.myDict['dep_pi_email_errors'] = errors

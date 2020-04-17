@@ -18,6 +18,7 @@ app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
 #establish tpxgui route
 @app.route('/tpxgui/',methods=['POST','GET'])
 def tpxgui():
+    log.info('tpxgui: ' + request.url)
     return tpx_gui(dev=debug)
 
 @app.route('/tpx_status/',methods=['POST','GET'])
@@ -59,7 +60,7 @@ if __name__ == '__main__':
     # define arg parser
     parser = argparse.ArgumentParser(description="Start KOA Ingestion API.")
     parser.add_argument("port", type=int, help="Flask server port.")
-    parser.add_argument("mode", type=str, choices=['dev', 'release'], 
+    parser.add_argument("--mode", type=str, choices=['dev', 'release'], default='release',
                         help="Determines database access and flask debugging mode.")
 
     #get args and define inputs
@@ -70,7 +71,7 @@ if __name__ == '__main__':
     host = '0.0.0.0'
 
     #create logger first
-    logdir = '/tmp' if debug else '/home/koaadmin/log'
+    logdir = '/tmp' if debug else '/log'
     create_logger('tpxgui', logdir)
     log = logging.getLogger('tpxgui')
 
