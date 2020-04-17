@@ -10,6 +10,7 @@ import osiris
 import esi
 import mosfire
 import weather
+import json
 import db_conn
 
 from flask import Flask, render_template, request, redirect, url_for, session
@@ -34,7 +35,6 @@ INSTRUMENTS = {
         }
 
 
-@app.route('/tpx_status/', methods=('GET','POST'))
 def tpx_status(dev=False):
     '''
     Method to update the transfer status of koa data

@@ -1,11 +1,14 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 from tpx_gui import tpx_gui 
-from tpx_status import tpx_status, INSTRUMENTS
+from tpx_status import tpx_status
 import argparse
 import logging
 
 
 #init flask app
+def get_resource_as_string(name, charset='utf-8'):
+    with app.open_resource(name) as f:
+        return f.read().decode(charset)
 app = Flask(__name__)
 app.jinja_env.globals['get_resource_as_string'] = get_resource_as_string
 app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
@@ -15,23 +18,19 @@ app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
 # establish routes
 #--------------------------------------------------------------------------------
 @app.route('/tpxgui/',methods=['POST','GET'])
-def tpxgui():
-    log.info('tpxgui: ' + request.args)
+def route_tpx_gui():
+    log.info('tpxgui: ' + str(request.args))
     return tpx_gui(dev=debug)
 
 @app.route('/tpx_status/',methods=['POST','GET'])
-def tpx_status():
-    log.info('tpx_status: ' + request.args)
+def route_tpxstatus():
+    log.info('tpx_status: ' + str(request.args))
     return tpx_status(dev=debug)
 
 
 #--------------------------------------------------------------------------------
 # helper utils
 #--------------------------------------------------------------------------------
-def get_resource_as_string(name, charset='utf-8'):
-    with app.open_resource(name) as f:
-        return f.read().decode(charset)
-
 def create_logger(name, logdir):
     try:
         #Create logger object
