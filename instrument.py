@@ -3,9 +3,14 @@ from datetime import datetime as DT
 import sys
 import confparse
 import urllib.request as URL
+from dep_pi_email import dep_pi_email
+import logging
 
 sys.path.append('/kroot/archive/common/default')
 from send_email import send_email
+
+log = logging.getLogger('koaapi')
+
 
 class Instrument:
     '''
@@ -34,13 +39,14 @@ class Instrument:
     psfrStatus(): API call to report the status of PSFR files
     weatherStatus(): API call to report the status of weather files
     '''
-    def __init__(self, date, statusType, status, statusMessage='NULL'):
+    def __init__(self, date, statusType, status, statusMessage='NULL', dev=False):
         self.obsDate = date
         self.currentDate = DT.strftime(DT.utcnow(), '%Y-%m-%d')
         self.currentTime = DT.strftime(DT.utcnow(), '%Y%m%d %H:%M:%S')
         self.statusType = statusType
         self.status = status
         self.statusMessage = statusMessage
+        self.dev = dev
         self.datadir = ''
         self.stagedir = ''
         self.instr = ''
@@ -72,14 +78,16 @@ class Instrument:
 
         self.config = confparse.ConfigParser(None, None, 'config.live.ini')
 
+        #db conn object (toggle for dev or release)
+        config_key = 'database_dev' if self.dev else 'database'
+        self.db = DBC.db_conn('config.live.ini', configKey=config_key)
+
     def lev0Status(self):
         '''
         API command to update the status of the TPX transfers
         '''
 
         ingestTime = DT.utcnow().strftime('%Y%m%d %H:%M')
-
-        subject = 'lev0 error'
 
         # Check to see what the status from IPAC was
         if self.status in ['DONE','ERROR']:
@@ -93,22 +101,23 @@ class Instrument:
                      '" and instr="',
                      self.instr,
                      '"')
-
             try:
-                db = DBC.db_conn("mysql","koaSol",test=False)
+                if self.dev: log.debug(f"DEV: NO QUERY: {''.join(query)}")
+                else: test = self.db.query('koa', query)
             except Exception as e:
-                print('Error setting up the connection object: ', e)
-            else:
-                try:
-                    test = db.do_query(query)
-                except Exception as e:
-                    print('could not complete the query')
+                log.error(f"Could not complete the query: {''.join(query)}")
 
             if self.status == 'ERROR':
-                self.sendEmail(subject, self.myDict)
+                self.sendEmail('lev0 error', self.myDict)
+            elif self.status == 'DONE':
+                res, errors = dep_pi_email(self.instr, self.obsDate, 0, self.dev)
+                if not res:
+                    self.myDict['dep_pi_email_errors'] = errors
+                    self.sendEmail('lev0 error', self.myDict)
+
         else:
             self.myDict['APIStatus'] = 'INCOMPLETE'
-            self.sendEmail(subject, self.myDict)
+            self.sendEmail('lev0 error', self.myDict)
 
         return self.myDict
 
@@ -116,18 +125,38 @@ class Instrument:
         '''
         API command to update the status of the TPX transfers
         '''
-        query = ''.join(['UPDATE koatpx SET lev1_stat="', self.status,
-            '", lev1_time="', self.currentTime[:-3], '", comment=', self.statusMessage,
-            ' WHERE utdate="', self.obsDate, '" and instr="', self.instr,'";'])
-
         # Future query for file-by-file ingestion
-        # query = ''.join(['UPDATE koatpx SET lev1_stat=', self.status,
-        #     ', lev1_time=', self.currentTime, ' WHERE koaid=', self.koaid,])
-#        db = DBC.db_conn()
-#        if self.status not in ['DONE','ERROR']:
-#            self.status == 'NA'
-#        db.do_query(query)
-        return self.statusType + ' ingestion was ' + self.status
+        # query = ('UPDATE koatpx SET lev1_stat=', self.status,
+        #     ', lev1_time=', self.currentTime, ' WHERE koaid=', self.koaid)
+        if self.status in ['DONE','ERROR']:
+            query = ('UPDATE koatpx SET lev1_stat="',
+                self.status,
+                '", lev1_time="',
+                self.currentTime[:-3],
+                '", comment=',
+                self.statusMessage,
+                ' WHERE utdate="',
+                self.obsDate,
+                '" and instr="',
+                self.instr,'";')
+
+            try:
+                if self.dev: log.debug(f"DEV: NO QUERY: {''.join(query)}")
+                else: test = self.db.query('koa', query)
+            except Exception as e:
+                log.error(f"Could not complete the query: {''.join(query)}")
+            if self.status == 'ERROR':
+                self.sendEmail('lev1 error', self.myDict)
+            elif self.status == 'DONE':
+                log.info('test123')
+                self.sendEmail('lev1 ingested', self.myDict)
+
+        else:
+            self.myDict['APIStatus'] = 'INCOMPLETE'
+            self.sendEmail('lev1 error', self.myDict)
+
+        return self.myDict
+
 
     def lev2Status(self):
         '''
@@ -140,10 +169,9 @@ class Instrument:
 #        # Future query for file-by-file ingestion
 #        # query = ''.join(['UPDATE koatpx SET lev2_stat=', self.status,
 #        #     ', lev2_time=', self.currentTime[:-3], ' WHERE koaid=', self.koaid,])
-#        db = DBC.db_conn()
 #        if self.status not in ['DONE','ERROR']:
 #            self.status == 'NA'
-#        db.do_query(query)
+#        self.db.query('koa', query)
         return self.statusType + ' ingestion was ' + self.status
 
     def trsStatus(self):
@@ -174,15 +202,10 @@ class Instrument:
 #        # query = ''.join(['UPDATE koatpx SET trs_stat=', self.status,
 #        #     ', trs_time=', self.currentTime, ' WHERE koaid=', self.koaid,])
             try:
-                db = DBC.db_conn("mysql","koa",test=False)
+                pass
+#                    test = self.db.query('koa', query)
             except Exception as e:
-                print('Error setting up the connection object: ', e)
-            else:
-                try:
-                    pass
-#                    test = db.do_query(query)
-                except Exception as e:
-                    print('could not complete the query')
+                log.error(f"Could not complete the query{''.join(query)}")
 
             if self.status == 'ERROR':
                 self.sendEmail(subject, self.myDict)
@@ -204,10 +227,9 @@ class Instrument:
 #        # Future query for file-by-file ingestion
 #        # query = ''.join(['UPDATE psfr SET ingest_stat=', self.status,
 #        #     ', ingest_time=', self.currentTime, ' WHERE koaid=', self.koaid])
-#        db = DBC.db_conn()
 #        if self.status not in ['DONE','ERROR']:
 #            self.status == 'NA'
-#        db.do_query(query)
+#        self.db.query('koa', query)
         return self.statusType + ' ingestion was ' + self.status
 
     def metaStatus(self):
@@ -221,10 +243,9 @@ class Instrument:
         # Future query for file-by-file ingestion
         # query = ''.join(['UPDATE koatpx SET psfr_stat=', self.status,
         #     ', psfr_time=', self.currentTime, ' WHERE koaid=', self.koaid,])
-#        db = DBC.db_conn()
 #        if self.status not in ['DONE','ERROR']:
 #            self.status == 'NA'
-#        db.do_query(query)
+#        self.db.query('koa', query)
         return self.statusType + ' ingestion was ' + self.status
 
     def weatherStatus(self):
@@ -233,11 +254,11 @@ class Instrument:
     def sendEmail(self, subject, myDict):
         '''
         '''
-
         body = ''
         for key,value in myDict.items():
             body = f"{body}\n{key} -- {value}"
         send_email(self.config.get_emailto(), self.config.get_emailfrom(), subject, body)
+        log.debug(f"{subject}\n{body}")
 
     def getPIEmail (self, semid):
         result = None
@@ -245,6 +266,6 @@ class Instrument:
         try:
             result = URL.urlopen(url).read().decode('utf-8')
         except Exception as e:
-            print(f'could not open url: {e}')
+            log.error(f"could not open url {url}: {e}")
         return result
 
