@@ -66,7 +66,7 @@ if __name__ == '__main__':
 
     # define arg parser
     parser = argparse.ArgumentParser(description="Start KOA API.")
-    parser.add_argument("port", type=int, help="Flask server port.")
+    parser.add_argument("--port", type=int, default=0, help="Flask server port.")
     parser.add_argument("--mode", type=str, choices=['dev', 'release'], default='release',
                         help="Determines database access and flask debugging mode.")
 
@@ -76,7 +76,8 @@ if __name__ == '__main__':
     mode = args.mode
     debug = False if mode == 'release' else True
     host = '0.0.0.0'
-
+    assert port != 0, "ERROR: Must provide port"
+    
     #create logger first
     logdir = '/tmp' if debug else '/log'
     create_logger('koaapi', logdir)
