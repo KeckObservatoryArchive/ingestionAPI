@@ -126,17 +126,38 @@ class Instrument:
         '''
         API command to update the status of the TPX transfers
         '''
-        query = ''.join(['UPDATE koatpx SET lev1_stat="', self.status,
-            '", lev1_time="', self.currentTime[:-3], '", comment=', self.statusMessage,
-            ' WHERE utdate="', self.obsDate, '" and instr="', self.instr,'";'])
-
         # Future query for file-by-file ingestion
-        # query = ''.join(['UPDATE koatpx SET lev1_stat=', self.status,
-        #     ', lev1_time=', self.currentTime, ' WHERE koaid=', self.koaid,])
-#        if self.status not in ['DONE','ERROR']:
-#            self.status == 'NA'
-#        self.db.query('koa', query)
-        return self.statusType + ' ingestion was ' + self.status
+        # query = ('UPDATE koatpx SET lev1_stat=', self.status,
+        #     ', lev1_time=', self.currentTime, ' WHERE koaid=', self.koaid)
+        if self.status in ['DONE','ERROR']:
+            query = ('UPDATE koatpx SET lev1_stat="',
+                self.status,
+                '", lev1_time="',
+                self.currentTime[:-3],
+                '", comment=',
+                self.statusMessage,
+                ' WHERE utdate="',
+                self.obsDate,
+                '" and instr="',
+                self.instr,'";')
+
+            try:
+                if self.dev: log.debug(f"DEV: NO QUERY: {''.join(query)}")
+                else: test = self.db.query('koa', query)
+            except Exception as e:
+                log.error(f"Could not complete the query: {''.join(query)}")
+            if self.status == 'ERROR':
+                self.sendEmail('lev1 error', self.myDict)
+            elif self.status == 'DONE':
+                log.info('test123')
+                self.sendEmail('lev1 ingested', self.myDict)
+
+        else:
+            self.myDict['APIStatus'] = 'INCOMPLETE'
+            self.sendEmail('lev1 error', self.myDict)
+
+        return self.myDict
+
 
     def lev2Status(self):
         '''
