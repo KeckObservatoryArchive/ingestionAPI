@@ -113,6 +113,7 @@ assert command in ['start', 'stop', 'restart', 'check'], 'Incorrect command'
 # get this script directory (assuming flask module exists here)
 
 dir = os.path.dirname(os.path.realpath(__file__))
+os.chdir(dir)
 
 # Check if server file exists
 
