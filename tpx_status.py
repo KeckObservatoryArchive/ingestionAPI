@@ -62,16 +62,16 @@ def tpx_status(dev=False):
     try:
         instrumentStatus = INSTRUMENTS[instr](instr, date, statusType, status, statusMessage, dev)
     except Exception as e:
-        log.error('error creating the object: ', e)
-        response = {'APIStatus':'ERROR', 'Message':'error creating the object'}
+        log.error('error creating the object: ' + str(e))
+        response = {'APIStatus':'ERROR', 'Message':f"error creating the object for '{instr}'"}
     else:
         # execute the status function based on statusType
         try:
             instrumentStatus.myDict['Instrument'] = instrumentStatus.instr
             response = instrumentStatus.types[instrumentStatus.statusType]()
         except Exception as e:
-            log.error('error executing the status type: ', e)
-            response = {'APIStatus':'ERROR', 'Message':'error executing the status type'}
+            log.error('error executing the status type: ' + str(e))
+            response = {'APIStatus':'ERROR', 'Message':f"error executing the status type '{statusType}'"}
         else:
             print(response)
     return json.dumps(response)
