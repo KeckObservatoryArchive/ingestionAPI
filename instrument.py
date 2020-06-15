@@ -111,7 +111,9 @@ class Instrument:
                 self.sendEmail('lev0 error', self.myDict)
             elif self.status == 'DONE':
                 res, errors = dep_pi_email(self.instr, self.obsDate, 0, self.dev)
-                if not res:
+#todo: temp disabled email for deimos processing
+               #if not res: 
+                if not res and '7 days' not in errors:
                     self.myDict['dep_pi_email_errors'] = errors
                     self.sendEmail('lev0 error', self.myDict)
 
@@ -249,7 +251,34 @@ class Instrument:
         return self.statusType + ' ingestion was ' + self.status
 
     def weatherStatus(self):
-        return self.statusType + ' ingestion was ' + self.status
+        '''
+        API command to update the status of the weather TPX transfers
+        '''
+
+        ingestTime = DT.utcnow().strftime('%Y%m%d %H:%M:%S')
+
+        # Check to see what the status from IPAC was
+        if self.status in ['DONE','ERROR']:
+            query = ('UPDATE koawx SET wx_complete="',
+                     ingestTime,
+                     '"',
+                     ' WHERE utdate="',
+                     self.obsDate,
+                     '"')
+            try:
+                if self.dev: log.debug(f"DEV: NO QUERY: {''.join(query)}")
+                else: test = self.db.query('koa', query)
+            except Exception as e:
+                log.error(f"Could not complete the query: {''.join(query)}")
+
+            if self.status == 'ERROR':
+                self.sendEmail('weather error', self.myDict)
+
+        else:
+            self.myDict['APIStatus'] = 'INCOMPLETE'
+            self.sendEmail('weather error', self.myDict)
+
+        return self.myDict
 
     def sendEmail(self, subject, myDict):
         '''
