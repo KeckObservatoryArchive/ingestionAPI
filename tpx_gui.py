@@ -3,7 +3,7 @@ import numpy as np
 import db_conn
 import datetime
 
-def tpx_gui():
+def tpx_gui(dev=False):
     #return
     #get currently selected instrument, default all
     instr = request.args.get("instrument","%")
@@ -38,7 +38,7 @@ def tpx_gui():
 
     #print(date)
     #connect to database
-    db = db_conn.db_conn('koa',test=False)
+    db = db_conn.db_conn('config.live.ini', configKey='database')
     #db.db_connect()
     #koatpx database SQL query/header
     if table=='koatpx':
@@ -60,7 +60,7 @@ def tpx_gui():
                        'End Time','Time Lost','Notes']
 
     #do query
-    result = db.do_query(query,"txt")
+    result = db.query('koa', query)
     #if query does not exist, do not make data table, render template
     if not result:
         return render_template('tpx_gui.html',data=result,page_header=page_header,
