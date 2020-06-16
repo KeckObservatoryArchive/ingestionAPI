@@ -71,6 +71,8 @@ class db_conn(object):
         pwd          = config['pwd']
         port         = int(config['port']) if 'port' in config else 0
         type         = config['type']
+        # In case database is not the config name
+        if 'db' in config.keys(): database = config['db']
 
         #check type is valid
         assert type in self.VALID_DB_TYPES, f"ERROR: database type '{type}' not supported.  Exiting."
