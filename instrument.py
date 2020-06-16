@@ -204,7 +204,7 @@ class Instrument:
 #        # query = ''.join(['UPDATE koatpx SET trs_stat=', self.status,
 #        #     ', trs_time=', self.currentTime, ' WHERE koaid=', self.koaid,])
             try:
-                    test = self.db.query('koa', query)
+                    test = self.db.query('koa5', query)
             except Exception as e:
                 log.error(f"Could not complete the query{''.join(query)}")
 
