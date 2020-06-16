@@ -19,7 +19,15 @@ import time
 import json
 
 
+#map any instrument names to base name for easy query searching (ie 'nirspec' should search on '%nirsp%')
+instrBase = {
+    'nirspec': 'nirsp'
+}
+
+
 def dep_pi_email(instr, utdate, level, dev=False):
+
+    instr = instr.lower()
 
     #We are only dealing with level 0 for now
     if level > 0:
@@ -54,7 +62,8 @@ def dep_pi_email(instr, utdate, level, dev=False):
         #Ensure that it was scheduled for this day (does not apply to ToOs)
         if prog_info['type'] != 'ToO':
             yester = get_delta_date(utdate, -1)
-            query = f"select * from telSchedule where Instrument like '%{instr}%' and Date='{yester}' and ProjCode like '%{progid}%'"
+            shortinstr = instrBase.get(instr, instr)
+            query = f"select * from telSchedule where Instrument like '%{shortinstr}%' and Date='{yester}' and ProjCode like '%{progid}%'"
             sched = db.query("keckOperations", query, getOne=True)
             if not sched:
                 errors.append(f'ERROR: Program {semid} was not scheduled on HST date {yester}')
@@ -121,6 +130,8 @@ def get_delta_date(datestr, delta):
 
 def get_propint_data(utdate, semid, instr):
 
+    instr = instr.upper()
+
     #try koa_ppp first
     db = db_conn.db_conn('config.live.ini', configKey='database')
     ppdata = db.query("koa", f"select * from koa_ppp where utdate='{utdate}' and semid='{semid}'", getOne=True)
@@ -161,6 +172,8 @@ def getPIEmail (semid):
 
 
 def get_pi_send_msg(instr, semester, progid, pp, pp1, pp2, pp3):
+
+    instr = instr.upper()
 
     msg = f"Dear {instr} program PI,\n\n";
     msg += f"Your {instr} data for\n\n";
