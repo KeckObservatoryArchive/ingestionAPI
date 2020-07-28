@@ -1,5 +1,4 @@
 from flask import Flask, render_template, request, redirect, url_for, session
-from tpx_gui import tpx_gui 
 from tpx_status import tpx_status
 import argparse
 import logging
@@ -17,11 +16,6 @@ app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
 #--------------------------------------------------------------------------------
 # establish routes
 #--------------------------------------------------------------------------------
-@app.route('/tpxgui/',methods=['POST','GET'])
-def route_tpx_gui():
-    log.info('tpxgui: ' + str(request.args))
-    return tpx_gui(dev=debug)
-
 @app.route('/tpx_status/',methods=['POST','GET'])
 def route_tpxstatus():
     log.info('tpx_status: ' + str(request.args))
@@ -65,7 +59,7 @@ def create_logger(name, logdir):
 if __name__ == '__main__':
 
     # define arg parser
-    parser = argparse.ArgumentParser(description="Start KOA API.")
+    parser = argparse.ArgumentParser(description="Start KOA TPX status service.")
     parser.add_argument("--port", type=int, default=0, help="Flask server port.")
     parser.add_argument("--mode", type=str, choices=['dev', 'release'], default='release',
                         help="Determines database access and flask debugging mode.")
@@ -80,10 +74,10 @@ if __name__ == '__main__':
     
     #create logger first
     logdir = '/tmp' if debug else '/log'
-    create_logger('koaapi', logdir)
-    log = logging.getLogger('koaapi')
+    create_logger('koatpx', logdir)
+    log = logging.getLogger('koatpx')
 
     #run flask server
-    log.info(f"Starting KOA API:\nPORT = {port}\nMODE = {mode}")
+    log.info(f"Starting TPX status service:\nPORT = {port}\nMODE = {mode}")
     app.run(host=host, port=port, debug=debug)
-    log.info("Stopping KOA API.\n")
+    log.info("Stopping TPX status service.\n")
