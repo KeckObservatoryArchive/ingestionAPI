@@ -19,7 +19,7 @@ import logging
 log = logging.getLogger('koaapi')
 
 
-# Create a dictionare of the instrument Constructors
+# Create a dictionary of the instrument Constructors
 INSTRUMENTS = {
         'deimos':deimos.Deimos,
         'esi':esi.Esi,
@@ -60,12 +60,15 @@ def tpx_status(dev=False):
 
     # Create the instrument subclass object based on instr 
     try:
+        # Here we create our instrumentStatus object that will handle any differences between instruments
+        # INSTRUMENTS is the dictionary of instrument constructors
         instrumentStatus = INSTRUMENTS[instr](instr, date, statusType, status, statusMessage, dev)
     except Exception as e:
         log.error('error creating the object: ' + str(e))
         response = {'APIStatus':'ERROR', 'Message':f"error creating the object for '{instr}'"}
     else:
         # execute the status function based on statusType
+        # statusType is defined in the instrument.py file
         try:
             instrumentStatus.myDict['Instrument'] = instrumentStatus.instr
             response = instrumentStatus.types[instrumentStatus.statusType]()
