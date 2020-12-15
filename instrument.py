@@ -68,6 +68,7 @@ class Instrument:
         # Dictionary with information to return back to user
         self.myDict = {}
         self.myDict['APIStatus'] = 'COMPLETE'
+        self.myDict['testonly'] = self.dev
         self.myDict['UTDate'] = self.obsDate
         self.myDict['Instrument'] = self.instr
         self.myDict['statusType'] = self.statusType
@@ -109,7 +110,7 @@ class Instrument:
 
             if self.status == 'ERROR':
                 self.sendEmail('lev0 error', self.myDict)
-            elif self.status == 'DONE':
+            elif not self.dev and self.status == 'DONE':
                 res, errors = dep_pi_email(self.instr, self.obsDate, 0, self.dev)
 #todo: temp disabled email for deimos processing
                #if not res: 
