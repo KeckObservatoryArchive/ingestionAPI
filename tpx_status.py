@@ -57,6 +57,11 @@ def tpx_status(dev=False):
     status = args['status']
     statusMessage = args.get('statusMessage', 'NULL')
     response = ''
+    # change dev here for testonly paramater
+    try:
+        if args['testonly'].lower() == 'true': dev=True
+    except:
+        pass
 
     # Create the instrument subclass object based on instr 
     try:
