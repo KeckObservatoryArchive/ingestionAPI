@@ -67,7 +67,7 @@ class Instrument:
 
         # Dictionary with information to return back to user
         self.myDict = {}
-        self.myDict['APIStatus'] = 'COMPLETE'
+        self.myDict['APIStatus'] = 'COMPLETE' if not self.dev else 'INCOMPLETE'
         self.myDict['testonly'] = self.dev
         self.myDict['UTDate'] = self.obsDate
         self.myDict['Instrument'] = self.instr
