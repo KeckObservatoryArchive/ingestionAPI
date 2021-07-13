@@ -161,14 +161,16 @@ def get_propint_data(utdate, semid, instr):
 
 def getPIEmail (semid):
 #TODO: use common function
-    result = None
     baseurl = 'https://www.keck.hawaii.edu/software/db_api/'
     url = f'{baseurl}proposalsAPI.php?ktn={semid}&cmd=getPIEmail'
     try:
         result = URL.urlopen(url).read().decode('utf-8')
+        result = json.loads(result)
+        email = result['data']['Email']
+        return email
     except Exception as e:
-        print(f'ERROR: could not open url {url}: {str(e)}')
-    return result
+        print(f'ERROR: could not get email from API call {url}: {str(e)}')
+        return None
 
 
 def get_pi_send_msg(instr, semester, progid, pp, pp1, pp2, pp3):
