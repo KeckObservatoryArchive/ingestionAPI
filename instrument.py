@@ -289,12 +289,3 @@ class Instrument:
         send_email(self.config.get_emailto(), self.config.get_emailfrom(), subject, body)
         log.debug(f"{subject}\n{body}")
 
-    def getPIEmail (self, semid):
-        result = None
-        url = f'{self.BASEURL}proposalsAPI.php?ktn={semid}&cmd=getPIEmail'
-        try:
-            result = URL.urlopen(url).read().decode('utf-8')
-        except Exception as e:
-            log.error(f"could not open url {url}: {e}")
-        return result
-
