@@ -149,9 +149,10 @@ def get_propint_data(utdate, semid, instr):
         baseurl = 'https://www.keck.hawaii.edu/software/db_api/'
         url = f'{baseurl}proposalsAPI.php?ktn={semid}&cmd=getApprovedPP'
         try:
-            pp = URL.urlopen(url).read().decode('utf-8')
-            if pp:
-                return pp, pp, pp, pp
+            result = URL.urlopen(url).read().decode('utf-8')
+            result = json.loads(result)
+            pp = result['data']['ProprietaryPeriod']
+            return pp, pp, pp, pp
         except Exception as e:
             print(f'could not open url: {str(e)}')
 
